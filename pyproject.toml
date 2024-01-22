@@ -1,0 +1,78 @@
+[project]
+name = "pasta"
+description = "Pasta is a shell processing utility for improving penetration test observability."
+dynamic = ["version"]
+license = "Apache-2.0"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+  { name = "pedregon", email = "56311438+pedregon@users.noreply.github.com" },
+]
+dependencies = []
+
+[project.optional-dependencies]
+experimental = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "VERSION"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "pasta/*.py",
+]
+
+[tool.hatch.envs.default]
+dependencies = [
+  "pre-commit~=3.6.0",
+]
+
+[tool.hatch.envs.lint]
+detached = true
+dependencies = [
+  "ruff~=0.1.14",
+]
+
+[tool.hatch.envs.type]
+detached = true
+dependencies = [
+  "pyright~=1.1.347",
+]
+
+[tool.hatch.envs.test]
+dependencies = [
+  "tox~=4.12.1",
+  "coverage[toml]~=7.4.0",
+  "pytest~=7.4.4",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["D", "E", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+exclude = ["*.pyi"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"setup.py" = ["D103"]
+
+[tool.pytest.ini_options]
+minversion = 6.0
+addopts = "-ra -q"
+testpaths = [
+  "tests",
+]
+filterwarnings = [
+  # Work around https://github.com/pytest-dev/pytest/issues/10977 for Python 3.12
+  'ignore:(ast\.Str|ast\.NameConstant|ast\.Num|Attribute s) is deprecated and will be removed.*:DeprecationWarning:',
+]

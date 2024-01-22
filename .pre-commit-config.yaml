@@ -1,0 +1,15 @@
+repos:
+  - repo: local
+    hooks:
+      - id: lint
+        name: Lint
+        entry: hatch env run -e lint ruff .
+        types: [python]
+        language: system
+        pass_filenames: false
+      - id: type
+        name: Type
+        entry: hatch env run -e type pyright .
+        types: [python]
+        language: system
+        pass_filenames: false
