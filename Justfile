@@ -1,11 +1,21 @@
+set dotenv-load
+
 lint:
-  hatch env run -e lint "ruff check ."
+  hatch fmt --linter --check
 
 type:
   hatch env run -e type "pyright ."
 
 format:
-  hatch env run -e lint "ruff format ."
+  hatch fmt --formatter
 
+[confirm]
 fix:
-  hatch env run -e lint "ruff check --fix ."
+  hatch fmt --linter
+
+test:
+	hatch run test:cover
+
+report: test
+	hatch run +py=3.9 test:html
+	

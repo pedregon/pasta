@@ -4,7 +4,7 @@ description = "Pasta is a shell processing utility for improving penetration tes
 dynamic = ["version"]
 license = "Apache-2.0"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.9"
 authors = [
   { name = "pedregon", email = "56311438+pedregon@users.noreply.github.com" },
 ]
@@ -18,23 +18,23 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "VERSION"
+path = "pasta/version.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
   "pasta/*.py",
 ]
 
+[tool.hatch.envs.hatch-static-analysis]
+dependencies = ["ruff==0.1.14"]
+
 [tool.hatch.envs.default]
 dependencies = [
   "pre-commit~=3.6.0",
 ]
 
-[tool.hatch.envs.lint]
-detached = true
-dependencies = [
-  "ruff~=0.1.14",
-]
+[tool.hatch.envs.default.scripts]
+install = "pre-commit install"
 
 [tool.hatch.envs.type]
 detached = true
@@ -42,17 +42,30 @@ dependencies = [
   "pyright~=1.1.347",
 ]
 
+[tool.hatch.envs.type.scripts]
+type = "pyright ."
+
 [tool.hatch.envs.test]
 dependencies = [
-  "tox~=4.12.1",
-  "coverage[toml]~=7.4.0",
   "pytest~=7.4.4",
+  "coverage[toml]~=7.4.0",
 ]
+
+[[tool.hatch.envs.test.matrix]]
+python = ["3.9", "3.10", "3.11", "3.12"]
+
+[tool.hatch.envs.test.scripts]
+test = "pytest"
+cover = [
+  "coverage run -m pytest",
+  "coverage report -m",
+]
+html = "coverage html"
 
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py312"
+target-version = "py39"
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "I"]
@@ -65,10 +78,11 @@ exclude = ["*.pyi"]
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "setup.py" = ["D103"]
+'tests/*' = ['D']
 
 [tool.pytest.ini_options]
 minversion = 6.0
-addopts = "-ra -q"
+addopts = "-ra -vv"
 testpaths = [
   "tests",
 ]
@@ -76,3 +90,24 @@ filterwarnings = [
   # Work around https://github.com/pytest-dev/pytest/issues/10977 for Python 3.12
   'ignore:(ast\.Str|ast\.NameConstant|ast\.Num|Attribute s) is deprecated and will be removed.*:DeprecationWarning:',
 ]
+
+[tool.coverage.run]
+branch = true
+source = ["pasta/"]
+
+[tool.coverage.report]
+exclude_also = [
+  # Don't complain about missing debug-only code:
+  "def __repr__",
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
+  # Don't complain if non-runnable code isn't run:
+  "if __name__ == .__main__.:",
+  # Don't complain about abstract methods, they aren't run:
+  "@(abc\\.)?abstractmethod",
+]
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "htmlcov/"
