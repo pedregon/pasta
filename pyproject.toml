@@ -8,7 +8,10 @@ requires-python = ">=3.9"
 authors = [
   { name = "pedregon", email = "56311438+pedregon@users.noreply.github.com" },
 ]
-dependencies = []
+dependencies = [
+  "click>=8.1.7,<9.0.0",
+  "pydantic>=2.0.0,<3.0.0",
+]
 
 [project.optional-dependencies]
 experimental = []
@@ -20,10 +23,13 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 path = "pasta/version.py"
 
-[tool.hatch.build.targets.sdist]
-include = [
-  "pasta/*.py",
+[tool.hatch.build.targets.wheel]
+packages = [
+  "pasta/",
 ]
+
+[project.scripts]
+pasta = "pasta.cmd:cli"
 
 [tool.hatch.envs.hatch-static-analysis]
 dependencies = ["ruff==0.1.14"]
@@ -45,6 +51,16 @@ dependencies = [
 [tool.hatch.envs.type.scripts]
 type = "pyright ."
 
+[tool.hatch.envs.docs]
+dependencies = [
+  "mkdocs~=1.5.3",
+  "mkdocs-material==9.5.7",
+]
+
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build"
+serve = "mkdocs serve"
+
 [tool.hatch.envs.test]
 dependencies = [
   "pytest~=7.4.4",
@@ -52,23 +68,25 @@ dependencies = [
 ]
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.9", "3.10", "3.11", "3.12"]
+python = ["3.11", "3.12"]
 
 [tool.hatch.envs.test.scripts]
 test = "pytest"
-cover = [
-  "coverage run -m pytest",
+cover = "coverage run -m pytest"
+report = [
+  "coverage combine",
   "coverage report -m",
+  "coverage html",
 ]
-html = "coverage html"
 
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py39"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["D", "E", "F", "I"]
+ignore= ["D401"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -80,11 +98,14 @@ exclude = ["*.pyi"]
 "setup.py" = ["D103"]
 'tests/*' = ['D']
 
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
 [tool.pytest.ini_options]
 minversion = 6.0
-addopts = "-ra -vv"
+addopts = "-ra"
 testpaths = [
-  "tests",
+  "tests/",
 ]
 filterwarnings = [
   # Work around https://github.com/pytest-dev/pytest/issues/10977 for Python 3.12

@@ -17,5 +17,7 @@ test:
 	hatch run test:cover
 
 report: test
-	hatch run +py=3.9 test:html
-	
+	hatch run +py=3.9 test:report
+
+docs:
+	hatch run docs:serve	

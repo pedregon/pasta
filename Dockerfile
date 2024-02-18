@@ -1,1 +1,0 @@
-from debian:12-slim
