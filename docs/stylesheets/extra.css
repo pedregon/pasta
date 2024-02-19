@@ -1,0 +1,15 @@
+@font-face {
+  font-family: "JetBrainsMonoNerdFont-Regular";
+  src: "../fonts/JetBrainsMonoNerdFont-Regular.ttf";
+}
+
+@font-face {
+  font-family: "JetBrainsMonoNerdFontMono-Regular";
+  src: "../fonts/JetBrainsMonoNerdFontMono-Regular.ttf";
+}
+
+
+:root {
+  --md-text-font: "JetBrainsMonoNerdFont-Regular";
+  --md-code-font: "JetBrainsMonoNerdFontMono-Regular";
+}

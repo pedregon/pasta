@@ -1,0 +1,78 @@
+site_name: Pasta
+site_description: "Improving red team observability via shell processing."
+strict: true
+site_url: https://pedregon.github.io/pasta/
+repo_url: https://github.com/pedregon/pasta/
+edit_uri: edit/main/docs/
+copyright: 'Copyright &copy; 2024 pedregon'
+remote_branch: gh-pages
+nav:
+  - Getting Started: 
+    - "In a Nutshell": index.md
+    - "Installation": install.md
+    - "Changelog": https://github.com/pedregon/pasta/blob/main/CHANGELOG.md
+  - Research: 
+    - "Introduction": research/intro.md
+    - "The Subshell Problem": research/subshell.md
+    - "Terminal Emulation": research/pty.md
+    - "ANSI Tokenization": research/tokenizer.md
+    - "Shell Fingerprinting": research/fingerprint.md
+    - "Analysis": research/analysis.md
+  - Usage:
+    - "Wrap a Shell": usage/wrap.md
+  - Integrations:
+    - "Shell Completions": integrations/completions.md
+    - "Tmux": integrations/tmux.md
+    - "Gnome Terminator": integrations/terminator.md
+  - Contributing:  https://github.com/pedregon/pasta/blob/main/CONTRIBUTING.md
+  - Issues: https://github.com/pedregon/pasta/issues
+theme:
+  name: material
+  custom_dir: "docs/theme"
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: brown
+      accent: orange
+      toggle:
+        icon: material/weather-night
+        name: "Switch to dark mode"
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: brown
+      accent: orange
+      toggle:
+        icon: material/weather-sunny
+        name: "Switch to light mode"
+  icon:
+    logo: octicons/terminal-24
+    repo: material/git
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.path
+    - navigation.prune
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - content.action.edit
+    - content.tooltips
+  watch:
+  - pasta
+  - GLOSSARY.md
+extra_css:
+  - stylesheets/extra.css
+markdown_extensions:
+  - abbr
+  - footnotes
+  - def_list
+  - pymdownx.snippets:
+      auto_append:
+        - GLOSSARY.md
+plugins:
+  - offline

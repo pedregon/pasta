@@ -21,3 +21,6 @@ report: test
 
 docs:
 	hatch run docs:serve	
+
+pages:
+	hatch run docs:publish
