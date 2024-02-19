@@ -2,12 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pedregon.github.io/pasta/index.html</loc>
-         <lastmod>2024-02-18</lastmod>
+         <lastmod>2024-02-19</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
-         <loc>https://pedregon.github.io/pasta/research.html</loc>
-         <lastmod>2024-02-18</lastmod>
+         <loc>https://pedregon.github.io/pasta/research/intro.html</loc>
+         <lastmod>2024-02-19</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
