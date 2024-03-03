@@ -96,6 +96,7 @@ exclude = ["*.pyi"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"pasta/pty.py" = ["D105"]
 "setup.py" = ["D103"]
 'tests/*' = ['D']
 

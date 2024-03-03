@@ -14,7 +14,7 @@ nav:
   - Research: 
     - "Introduction": research/intro.md
     - "The Subshell Problem": research/subshell.md
-    - "Terminal Emulation": research/pty.md
+    - "Terminal Emulation": research/terminal.md
     - "ANSI Tokenization": research/tokenizer.md
     - "Shell Fingerprinting": research/fingerprint.md
     - "Analysis": research/analysis.md

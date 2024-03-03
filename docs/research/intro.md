@@ -1,28 +1,79 @@
-# Research
+# Introduction
 
-Introducing an adversarial mindset to an organization's security assurance
+## Background
 
+Have you been in a capture-the-flag event and had to use a chat channel to share proof of concepts for challenges?
+Teammates are messaging back and forth. Tool output is splatted across the chat and you just want to know what goes
+with what. How about your writeup notes? Note taking in offensive cyber security is paramount to
+your success, but often times notes suffer one of two problems: someones art or time decay.
+
+Taking a step a back, writeups typically serve as the post-analysis deliverable for organizations conducting an engagement. 
+Let's assume that we take good notes. As an offensive security organization, our goal is provide effective services to our customers, but how
+do we augment our capabilities or progress our workflows? Introducing feedback loops or the ability to query and analyze engagements over time could be powerful.
+Is automation the answer? Probably not, maybe AI is? Unfortunately, attack data is too dynamic, TTPs are not standardized, and circumstantial 
+data is prevelant for the data management solutions that exist today.
+Designing and building these solutions or baking them into C&Cs requires significant finanical investment and comes with the challenges associated with
+an evolving Internet. Also, attack data presentation, how an ethical hacker interacts with the engagement data akin to their workflows, is often not considered
+or a disciplinary gap exists between the developers and end users of these systems.
+
+In a nutshell, a lack of observability within an engagement leads to trickle-down miscommunication. If the red team is inefficient during an
+engagement because they cannot collaborate effectively or if the blue team does not fully understand the writeup, then we have problems.
+
+### Layman's Terminology
+
+For the purposes of this research, offensive cyber security may be summarized by two security assurance process.
 A [penetration test](https://www.eccouncil.org/cybersecurity/what-is-penetration-testing/) is a simulated attack
 used to identify organizational vulnerabilities and inform cyber security policy.
-
 Red teaming goes a step beyond a penetration test. A [red team](https://www.crowdstrike.com/cybersecurity-101/red-teaming/)
 engagement uses ethical hacking to emulate an adversary attempting to breach an organization's security posture.
 
-A lack of observability within a red team engagement often leads to trickle-down miscommunication.
+## Problem Statement
 
-Unfortunately, attack data presentation is often not considered for the workflow of How attackers view and use data
-to accomplish objectives (critical thinking)
+So where does this leave us? In a red team, how do we improve observability of the "adversary" and analyze that data? Well, hacking leverage tools.
+There are N post-processors out there for each X tool. Unfortunately, the tool decides how to collect the data, what format to use, and the capabilities involved.
+In engagements, ethical hackers do not control their available targets and may encounter unforseen network logic. Hacking can be weird. A dynamic workflow creates
+challenges for observability and managing that data.
+Developing a post-processor for some tool, which you may not control, often yields endless edge cases for an organization data standard.
 
-## Main Idea
+### Proposed Solution
 
-A lack of observability within penetration tests often leads to
-trickle-down miscommunication.
+This project seeks to start with the *collection of data* rather than *reacting to the collected data first*.
+The lexical analysis of interactive shell data would introduce engagement context into post-processing, resulting in a more effective presentation of
+attack data. Interactive shell data is atomic to tool output. Much of ethical hacking consitutes the use of a terminal to execute TTPs.
+This is not exhaustive, but for the purposes of scope, we will ignore other ethical hacking "sources" such as a web browser or other GUI.
 
-## Red Team Lifecycle
+### Justification
+
+By applying lexical analysis onto interactive shell data, we improve the quality of the observed data. Data quality is critical to solving the aforementioned downstream
+attack data presentation challenges. Understanding the context of the ethical hacker's actions would inform post-processors of what to look for and drive their
+automation. One could even develop a language server for notetaking that standardizes organization data. No matter what observability management solution is leveraged,
+human interaction will remain integral to cleaning any collected data. AI applications are another example.
+Imagine if you could talk to your commands or writeup notes during an engagement?
+
+The proposed solution also copes with the fact that many of the tools used within an engagement are not controlled
+by the red team's data standards. The observability mechanism is tool agnostic. Therefore, there are no operational security concerns at play because the red team
+is not installing additional indicators onto a target. Often times, a red team does not want to be caught for the sake of the engagement effectiveness.
+
+In summary, there are many capabilities that an organization could
+produce if the data ingested was tokenized.
+
+### Project Challenge
+
+If collecting data from a shell is the answer, can we not just use a terminal emulator recorder? Unfortunately, existing terminal emulator recorders do not distinguish
+a parent shell from a child shell, the [subshell problem](subshell.md). The purpose of this project is to solve the subshell problem such that lexical analysis
+may be applied to the network and not just the origin. Some tools such as Metasploit might offer spool capabilities but do not event consider the remote shell.
+Also, most of the existing terminal emulator records do not differentiate command input from command output.
+
+## Understanding the Red Team Workflow
 
 Knowledge often gets lost in translation within a red team
-during an engagement and from the  red team to the blue team
-when describing TTPs used.
+during an engagement and from the red team to the blue team
+when describing TTPs used. This section will present the ideas that led
+to the identification of the proposed solution. The cyber security industry
+overlooks or does not have consensus when it comes to modeling the red
+team workflow. Blue team governance and post-analysis models dominant the field.
+However, when trying to build red team data observability solutions you are left with trying
+to fit a square peg into a round hole with blue team models of the adversary.
 
 ### Strengths of Models
 
@@ -65,45 +116,32 @@ led to the post analysis story.
 
 ![Adversarial Decision Making Model](../img/admm.drawio.svg)
 
-Each block in the diagram has a protruding arrow is a point of friction within a penetration test
+Each block in the diagram, stage in the data lifecycle, has a protruding arrow that is a point of friction within an
 engagement. If you were to consider a cyber kill chain, this ADMM process would be a sub loop within each phase.
 
-- TTPs
-- Response
-- Artifacts
+*TTPs*
 
+:  Tools, techniques, and procedures.
 
+*Execute*
 
-• Like the OODA Loop
-Description
-• Represents the adversarial mindset during a penetration test, NOT post-analysis.
-• Occurs within each cyber kill chain phase as a feedback loop.
-• Each block to protruding arrow is a point of friction within a penetration test
-engagement.
-Plot
-• Miscommunication leads to red team inefficiency and/or ineffective customer
-reporting.
-• Penetration testing management solutions (artifacts) are not effective because
-attack data is not made presentable by response interpretation
+:  Action or use of a TTP.
 
-## Background
+*Response*
 
-## Problem Statement
+:  Feedback from the TTP action.
 
-Complete lexical analysis of interactive shell data would empower
-contextual post-processing resulting in effective presentation of
-attack data.
+*Interpret*
 
-Problem Statement
-• Interactive shell data is atomic and semantic analysis from this data drives penetration testing
-management systems. Red teams struggle with communication and documentation because
-computer hacking is weird, and the systems available are too rigid to present attack data.
-• The lexical analysis of shell data would empower the post-processing of attack data to create robust
-presentation systems. Solution ubiquity is necessary because there are N number of information
-security tools and controlling a tool pipeline raises operational security concerns.
-• Unfortunately, terminal recorders do not distinguish a parent shell from a child shell, the subshell
-problem.
-Solution Statement
-• Pasta is a ubiquitous shell processing utility for improving penetration test observability via lexical
-analysis of terminal emulation. The tool will serve as a drop-in local shell replacement and the library
-will aid future semantic analysis.
+:  Interpretation of the feedback or TTP output into attack data.
+
+*Artifacts*
+
+:  Attack data and aditional knowledge learned.
+
+*Analyze & Decide*
+
+:  Based on analysis of situation presented by artifacts, determine the next TTP to use to accomplish the objectives.
+
+The lexical analysis of interactive shell data solution fits into the Response to Interpret point of friction within the ADMM.
+The semantic analysis of this data would be better encompassed by Interpret to Artifacts.
