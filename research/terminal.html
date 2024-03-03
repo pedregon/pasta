@@ -1161,23 +1161,41 @@
 <p>A pseudo terminal is a pair of virtual character devices that provide a bidirectional
 communication channel. This pair is referred to as a <abbr title="pseudo terminal">pty</abbr>.
 One end of the channel is called the master; the other end is called the slave<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>. The slave end may be
-thought of as a cable that acts like a terminal. The purpose of a pseudo terminal is to provide means to control
+thought of as a cable that acts like a terminal. The purpose of a pseudo terminal is to provide a means to control
 and interact with a terminal using software.</p>
 <h2 id="controlling-terminal">Controlling Terminal</h2>
 <p>Typically, there are two methods for controlling a child process terminal with software: subprocess or fork.
-For this project, the subprocess approach was chosen because of the benefits associated with an operating system
+For this capstone, the subprocess approach was chosen because of the benefits associated with an operating system
 logical boundary versus process space.</p>
+<h3 id="raw-versus-cooked-mode">Raw Versus Cooked Mode</h3>
 <p>To wrap a subprocess such as <code>bash</code>, the parent program must use a <abbr title="pseudo terminal">pty</abbr>. Assuming that the parent program 
 standard input file descriptor is a TTY, it must be set into raw mode. Raw mode passes data from standard
 input as-is to the program without interpreting any of the special characters, useful for TUIs.
-The default for must REPLs such as <code>bash</code> is cooked mode which preprocesses the input. </p>
-<h3 id="raw-versus-cooked-mode">Raw Versus Cooked Mode</h3>
+The default mode for most REPLs is cooked, which preprocesses the input.</p>
 <h3 id="echo-mode">Echo Mode</h3>
+<p>Echo mode is set on the slave file descriptor of the <abbr title="pseudo terminal">pty</abbr>. Echo mode is what returns standard input to standard output
+as one interacts with the shell. For example, each keystroke is replayed back to the standard ouput, even before the
+command input has been submitted. For the purposes of this capstone, echo mode will remain on to mirror typial terminal
+usage.</p>
 <h3 id="window-resizing">Window Resizing</h3>
+<p>To prevent unexpected terminal output, a <abbr title="pseudo terminal">pty</abbr> must consider the window resizing of the parent process. A parent program may resize the slave 
+file decriptor window when the <code>SIGWICH</code> signal is detected by the parent. The parent may then utilize <code>termios</code> to adjust the subprocess
+terminal attributes accordingly.</p>
 <h3 id="buffer-size">Buffer Size</h3>
+<p>When reading output from the various file descriptors, it is important to set a buffer size to prevent data loss.</p>
 <h3 id="sending-signals">Sending Signals</h3>
+<p>A <abbr title="pseudo terminal">pty</abbr> is the controlling terminal, therefore signals read from the parent in raw mode are forwarded to the slave file descriptor. If the parent
+software needs to send a signal to the <abbr title="pseudo terminal">pty</abbr>, then it must send control signals using ANSI escape codes.</p>
 <h2 id="memory-pipes">Memory Pipes</h2>
+<p>In <code>python</code>, the subprocess standard output and standard error is best captured via in-memory pipes. In-memory pipes are one-way writable and readable.
+A <abbr title="pseudo terminal">pty</abbr> slave file descriptor acts like a terminal and thus is assigned to the standard input of the subprocess. The subprocess standard output and error
+does not need to act like a terminal. Pipes are sufficient.</p>
 <h3 id="buffer-limitations">Buffer Limitations</h3>
+<p>Unfortunately, in-memory pipes are limited to a parent process' memory. Memory is faster than disk read-write, but in a shell, data is streaming
+continuously and sometimes eratic depending on the command executed. Therefore, files may be considered when buffer limitations are a concern. However,
+for this capstone, memory limitations will not be consideredin an effort to not over-engineer the solution. A <code>reader</code> data structure will
+be leveraged to differentiate the prompt and command lifecycles. The <code>reader</code> will read from the buffer while the buffer is replayed to the appropriate
+standard ouput and standard error that the user expects, in an effort to prevent data loss for the user.</p>
 <div class="footnote">
 <hr />
 <ol>
