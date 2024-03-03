@@ -16,7 +16,7 @@
         <link rel="prev" href="intro.html">
       
       
-        <link rel="next" href="pty.html">
+        <link rel="next" href="terminal.html">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -78,6 +78,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#subshell-problem" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -546,6 +551,19 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    The Subshell Problem
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="subshell.html" class="md-nav__link md-nav__link--active">
         
@@ -556,6 +574,154 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#interactive-shell-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interactive Shell Data
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interactive Shell Data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prompt-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prompt Lifecycle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command Lifecycle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shell-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shell Lifecycle
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-tour-of-terminal-recorders" class="md-nav__link">
+    <span class="md-ellipsis">
+      A Tour of Terminal Recorders
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A Tour of Terminal Recorders">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scripted-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scripted Windows
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shell-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shell Hooks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asciinema" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asciinema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#readline-wrappers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Readline Wrappers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terminal-multiplexors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Terminal Multiplexors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ebpf-monitoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      eBPF Monitoring
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ethical-hacking-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ethical Hacking Tools
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#warp-terminal-and-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      Warp Terminal and AI
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -569,7 +735,7 @@
   
   
     <li class="md-nav__item">
-      <a href="pty.html" class="md-nav__link">
+      <a href="terminal.html" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -900,6 +1066,145 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#interactive-shell-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interactive Shell Data
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interactive Shell Data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prompt-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prompt Lifecycle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command Lifecycle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shell-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shell Lifecycle
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-tour-of-terminal-recorders" class="md-nav__link">
+    <span class="md-ellipsis">
+      A Tour of Terminal Recorders
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A Tour of Terminal Recorders">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scripted-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scripted Windows
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shell-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shell Hooks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asciinema" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asciinema
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#readline-wrappers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Readline Wrappers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terminal-multiplexors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Terminal Multiplexors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ebpf-monitoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      eBPF Monitoring
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ethical-hacking-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ethical Hacking Tools
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#warp-terminal-and-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      Warp Terminal and AI
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -923,9 +1228,66 @@
   
 
 
-  <h1>The Subshell Problem</h1>
-
-
+<h1 id="subshell-problem">Subshell Problem</h1>
+<p>The subshell problem is a limitation of terminal recorders to distinguish shell data of a child shell 
+from a parent shell. This requires significant human review of terminal recording output, including
+scripted windows. Ethical hackers use <em>many</em> tools to spawn shells and chain or tape these shells
+together. This results in endless edge cases that often makes developers develop a post processor
+per tool, infeasible in an ever-evolving cyber domain.</p>
+<h2 id="interactive-shell-data">Interactive Shell Data</h2>
+<p>Interactive shell data is an ADMM Action and Response pair encompassing the following terminal data lifecycles.</p>
+<h3 id="prompt-lifecycle">Prompt Lifecycle</h3>
+<p>The prompt lifecycle distinguishes one command from another. This is the foundation of shell processing.
+When the shell prompt shows up, one knows that the previous command
+has concluded.</p>
+<h3 id="command-lifecycle">Command Lifecycle</h3>
+<p>The command lifecycle distinguishes command input from command output. For example,
+when a command such as <code>nmap</code> is executed, the command input differs from the command output.
+Differentiating the two empowers command output parsing and metrics across engagements.</p>
+<h3 id="shell-lifecycle">Shell Lifecycle</h3>
+<p>The shell lifecycle distinguishes a child shell from a parent shell. For example, a parent shell may be
+a local <code>bash</code> session and the child shell a remote <code>ssh</code> session.</p>
+<h2 id="a-tour-of-terminal-recorders">A Tour of Terminal Recorders</h2>
+<h3 id="scripted-windows">Scripted Windows</h3>
+<p>The Linux <code>script</code> command is often used to capture raw terminal output by spawning a <abbr title="pseudo terminal">pty</abbr> and writing the observed
+data to a <code>typescript</code> file. There are various utilities to playback the captured input and output, but the program
+makes no effort to differentiate the data.</p>
+<h3 id="shell-hooks">Shell Hooks</h3>
+<p>Shell hooks provide scripts the ability to register callbacks on shell events. Notably, <code>zsh</code> includes widgets but
+shell hooks are limited to a process lifecycle. Hooks may differentiate command input and output via some shell magic,
+but do not have an understanding of the contents until the process completes. Therefore, shell hooks are limited when
+a process hangs and cannot detect remote commands.</p>
+<p>The shell history is a hook capability, but only captures command input.
+The <code>atuin</code> program is an example shell hook tool.</p>
+<h3 id="asciinema">Asciinema</h3>
+<p>The <code>asciinema</code> tool is a popular terminal recorder that acts similar to scripted windows. The tool includes
+the <code>asciicast/v2</code> data standard for recording output instead of <code>typescript</code>. The <code>asciicast/v2</code> standard does
+differentiate prompts but does yet separate command input from command output.</p>
+<h3 id="readline-wrappers">Readline Wrappers</h3>
+<p>Readline is a Linux library that differentiates the prompt. Tools such as <code>rlwrap</code> even differentiate command input
+and output, but like most ptys, it does not understand that child shell data is different from the orginial process.</p>
+<h3 id="terminal-multiplexors">Terminal Multiplexors</h3>
+<p>Terminal multiplexors manage many ptys typically via a client-server protocol. Popular tools such as <code>tmux</code>, <code>screen</code>,
+and <code>zellij</code> use commands to interact with their respective servers. Notably, <code>tmux</code> includes a control mode
+capability intended to provide an interface for <code>iterm2</code>. Unfortuately, control mode is limited by the same <abbr title="pseudo terminal">pty</abbr>
+problems that readline has. The <code>tmux</code> tool can track layout changes, commands, and shell data, but only
+for the local machine that it is installed on, not subshells.</p>
+<h3 id="ebpf-monitoring">eBPF Monitoring</h3>
+<p>Linux includes a kernel-level sandbox called <code>eBPF</code> for monitoring system calls, network activity, and other operating system
+capabilities. The <code>eBPF</code> ecosystem leverages compiled-byte code scripts that are often generated from higher
+level programming languages. The capabilities offered are very powerful. Unfortuately, even with tools such as
+<code>nhi</code> and <code>bcc</code>, the differentiating child shells from parent shells remains an issue.</p>
+<h3 id="ethical-hacking-tools">Ethical Hacking Tools</h3>
+<p>Often times information security tools include a means of recording the session or maintaining command history.
+Tools that install implants or manage reverse shells typically do not even consider recording the subshell
+data. The <code>metasploit</code> Ruby API and spool command do not include a utility to capture subshell data. Nevertheless,
+subshells within these shells would also not be recorded. Some tools such as <code>X</code> record shell activity on each
+implant and communicate back to the C&amp;C, but this requires control of remote system as well as an installation
+on disk or in-memory of the target, an <abbr title="operational security">OPSEC</abbr> concern.</p>
+<h3 id="warp-terminal-and-ai">Warp Terminal and AI</h3>
+<p>The <code>warp</code> terminal is built to leverage AI capabilities.
+Again, AI is only as effective as the quality of input data. Tokenizing shell
+data augments the data with better context.</p>
 
 
 
@@ -980,7 +1342,7 @@
         
         
           
-          <a href="pty.html" class="md-footer__link md-footer__link--next" aria-label="Next: Terminal Emulation">
+          <a href="terminal.html" class="md-footer__link md-footer__link--next" aria-label="Next: Terminal Emulation">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next

@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://pedregon.github.io/pasta/research/pty.html">
+        <link rel="canonical" href="https://pedregon.github.io/pasta/research/terminal.html">
       
       
         <link rel="prev" href="subshell.html">
@@ -78,6 +78,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#terminal-emulation" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -567,8 +572,21 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
       
-      <a href="pty.html" class="md-nav__link md-nav__link--active">
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Terminal Emulation
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="terminal.html" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -577,6 +595,118 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pseudo-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pseudo Terminal
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#controlling-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controlling Terminal
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controlling Terminal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#raw-versus-cooked-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Raw Versus Cooked Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#echo-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Echo Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#window-resizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Window Resizing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#buffer-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      Buffer Size
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sending-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sending Signals
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-pipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Memory Pipes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Memory Pipes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#buffer-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Buffer Limitations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -900,6 +1030,109 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pseudo-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pseudo Terminal
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#controlling-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controlling Terminal
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controlling Terminal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#raw-versus-cooked-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Raw Versus Cooked Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#echo-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Echo Mode
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#window-resizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Window Resizing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#buffer-size" class="md-nav__link">
+    <span class="md-ellipsis">
+      Buffer Size
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sending-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sending Signals
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-pipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Memory Pipes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Memory Pipes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#buffer-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Buffer Limitations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -915,7 +1148,7 @@
                   
 
   
-    <a href="https://github.com/pedregon/pasta/edit/main/docs/research/pty.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/pedregon/pasta/edit/main/docs/research/terminal.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4v-2m10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1 2.1 2.1Z"/></svg>
     </a>
@@ -923,9 +1156,36 @@
   
 
 
-  <h1>Terminal Emulation</h1>
-
-
+<h1 id="terminal-emulation">Terminal Emulation</h1>
+<h2 id="pseudo-terminal">Pseudo Terminal</h2>
+<p>A pseudo terminal is a pair of virtual character devices that provide a bidirectional
+communication channel. This pair is referred to as a <abbr title="pseudo terminal">pty</abbr>.
+One end of the channel is called the master; the other end is called the slave<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>. The slave end may be
+thought of as a cable that acts like a terminal. The purpose of a pseudo terminal is to provide means to control
+and interact with a terminal using software.</p>
+<h2 id="controlling-terminal">Controlling Terminal</h2>
+<p>Typically, there are two methods for controlling a child process terminal with software: subprocess or fork.
+For this project, the subprocess approach was chosen because of the benefits associated with an operating system
+logical boundary versus process space.</p>
+<p>To wrap a subprocess such as <code>bash</code>, the parent program must use a <abbr title="pseudo terminal">pty</abbr>. Assuming that the parent program 
+standard input file descriptor is a TTY, it must be set into raw mode. Raw mode passes data from standard
+input as-is to the program without interpreting any of the special characters, useful for TUIs.
+The default for must REPLs such as <code>bash</code> is cooked mode which preprocesses the input. </p>
+<h3 id="raw-versus-cooked-mode">Raw Versus Cooked Mode</h3>
+<h3 id="echo-mode">Echo Mode</h3>
+<h3 id="window-resizing">Window Resizing</h3>
+<h3 id="buffer-size">Buffer Size</h3>
+<h3 id="sending-signals">Sending Signals</h3>
+<h2 id="memory-pipes">Memory Pipes</h2>
+<h3 id="buffer-limitations">Buffer Limitations</h3>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:1">
+<p>https://man7.org/linux/man-pages/man7/<abbr title="pseudo terminal">pty</abbr>.7.html&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
 
 
 

@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://pedregon.github.io/pasta/research/tokenizer.html">
       
       
-        <link rel="prev" href="pty.html">
+        <link rel="prev" href="terminal.html">
       
       
         <link rel="next" href="fingerprint.html">
@@ -78,6 +78,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#ansi-tokenization" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -561,7 +566,7 @@
   
   
     <li class="md-nav__item">
-      <a href="pty.html" class="md-nav__link">
+      <a href="terminal.html" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -588,6 +593,19 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    ANSI Tokenization
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="tokenizer.html" class="md-nav__link md-nav__link--active">
         
@@ -598,6 +616,118 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#compilers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compilers
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ansi-escape-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      ANSI Escape Codes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ANSI Escape Codes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stripping-ansi-from-ascii" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stripping ANSI from ASCII
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#windows-virtual-terminal-sequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      Windows Virtual Terminal Sequences
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#typescript" class="md-nav__link">
+    <span class="md-ellipsis">
+      Typescript
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Typescript">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#line-separators-and-clrf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Line Separators and CLRF
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prompts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prompts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sessions
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -900,6 +1030,109 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#compilers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compilers
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ansi-escape-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      ANSI Escape Codes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ANSI Escape Codes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stripping-ansi-from-ascii" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stripping ANSI from ASCII
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#windows-virtual-terminal-sequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      Windows Virtual Terminal Sequences
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#typescript" class="md-nav__link">
+    <span class="md-ellipsis">
+      Typescript
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Typescript">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#line-separators-and-clrf" class="md-nav__link">
+    <span class="md-ellipsis">
+      Line Separators and CLRF
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prompts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prompts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Commands
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sessions
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -923,9 +1156,16 @@
   
 
 
-  <h1>ANSI Tokenization</h1>
-
-
+<h1 id="ansi-tokenization">ANSI Tokenization</h1>
+<h2 id="compilers">Compilers</h2>
+<h2 id="ansi-escape-codes">ANSI Escape Codes</h2>
+<h3 id="stripping-ansi-from-ascii">Stripping ANSI from ASCII</h3>
+<h3 id="windows-virtual-terminal-sequences">Windows Virtual Terminal Sequences</h3>
+<h2 id="typescript">Typescript</h2>
+<h3 id="line-separators-and-clrf">Line Separators and CLRF</h3>
+<h3 id="prompts">Prompts</h3>
+<h3 id="commands">Commands</h3>
+<h3 id="sessions">Sessions</h3>
 
 
 
@@ -963,7 +1203,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="pty.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Terminal Emulation">
+          <a href="terminal.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Terminal Emulation">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>

@@ -2,62 +2,62 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pedregon.github.io/pasta/index.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/install.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/integrations/completions.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/integrations/terminator.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/integrations/tmux.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/research/analysis.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/research/fingerprint.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/research/intro.html</loc>
-         <lastmod>2024-02-21</lastmod>
-         <changefreq>daily</changefreq>
-    </url>
-    <url>
-         <loc>https://pedregon.github.io/pasta/research/pty.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/research/subshell.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://pedregon.github.io/pasta/research/terminal.html</loc>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/research/tokenizer.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://pedregon.github.io/pasta/usage/wrap.html</loc>
-         <lastmod>2024-02-21</lastmod>
+         <lastmod>2024-03-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
