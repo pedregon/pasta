@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import os
+import queue
 import types
 import typing as t
-from collections import abc
+from collections import abc, deque
 
 from . import actions
 
@@ -15,29 +16,12 @@ class Typescript:
     linesep: bytes = os.linesep.encode("ascii")
     crlf: bytes = "\r\n".encode("ascii")
 
-    def tokenize(self) -> abc.Generator[actions.Action, None, None]:
-        yield actions.Action()
+    def __init__(self, stream: deque[bytes]) -> None:
+        self.stream = stream
 
-    def __enter__(self) -> Typescript:
-        return self
-
-    @t.overload
-    def __exit__(self, exc_type: None, exc_val: None, exc_tb: None) -> None:
-        ...
-
-    @t.overload
-    def __exit__(
-        self,
-        exc_type: type[BaseException],
-        exc_val: BaseException,
-        exc_tb: types.TracebackType,
-    ) -> None:
-        ...
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: types.TracebackType | None,
-    ) -> None:
-        pass
+    def tokenize(self) -> abc.Generator[bytes, None, None]:
+        """A."""
+        try:
+            yield self.stream.pop()
+        except IndexError:
+            pass
