@@ -28,6 +28,7 @@ nav:
   - Issues: https://github.com/pedregon/pasta/issues
 theme:
   name: material
+  logo: img/pasta-slim.svg
   custom_dir: "docs/theme"
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -45,7 +46,7 @@ theme:
         icon: material/weather-sunny
         name: "Switch to light mode"
   icon:
-    logo: octicons/terminal-24
+    # logo: docs/img/pasta.svg #octicons/terminal-24
     repo: material/git
   features:
     - navigation.instant
