@@ -279,6 +279,8 @@ class Terminal:
 
         # get the standard input file descriptor
         stdin_fd = sys.stdin.fileno()
+        if self.logger is not None:
+            self.logger.debug("File descriptor parent terminal: %d", stdin_fd)
 
         if not os.isatty(stdin_fd):
             raise ValueError("Standard input is not a tty.")
@@ -331,6 +333,17 @@ class Terminal:
                 stderr=subprocess.PIPE,
                 bufsize=bufsize,
             )
+
+            if self.logger is not None:
+                if proc.stdout is not None:
+                    self.logger.debug(
+                        "File descriptor child output: %d", proc.stdout.fileno()
+                    )
+
+                if proc.stderr is not None:
+                    self.logger.debug(
+                        "File descriptor child error: %d", proc.stderr.fileno()
+                    )
 
             # set the initial terminal size
             rows, cols = self._get_term_winsize(stdin_fd)
