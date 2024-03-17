@@ -13,18 +13,32 @@ from . import actions
 
 
 class Typescript:
-    """Typescript is a shell data reader."""
+    """Typescript is a shell data reader.
+
+    Attributes
+    ----------
+    linesep
+        Cooked mode terminal line separator.
+    crlf
+        Terminal carriage return and line feed.
+
+    """
 
     linesep: bytes = os.linesep.encode("ascii")
     crlf: bytes = "\r\n".encode("ascii")
 
-    def __init__(self, stream: t.AsyncGenerator[bytes, None]) -> None:
-        self.stream = stream
+    def __init__(self, histsize: int = 1000) -> None:
+        self.histsize = histsize
+        self.buffer = []
 
-    async def tokenize(self) -> bytes:
-        """A."""
-        try:
-            b = await anext(self.stream)
-            return b
-        except StopAsyncIteration:
-            return b""
+    def write(self, b: bytes) -> int:
+        self.buffer.append(b)
+        return len(b)
+
+    # def tokenize(self) -> bytes:
+    #     """A."""
+    #     try:
+    #         b = await anext(self.stream)
+    #         return b
+    #     except StopAsyncIteration:
+    #         return b""

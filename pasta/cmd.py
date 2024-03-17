@@ -1,19 +1,33 @@
 """The `cmd` module is a command line application."""
 import asyncio
+import logging
 import shlex
 import time
 
 import click
 
-from . import pty
+from . import pty, shell
 
 
-async def wrap(cmd: str) -> None:
-    pasta = pty.Pasta()
-    async with pasta.spool(cmd, echo=False) as spooler:
+def wrap(cmd: str) -> None:
+    logger = logging.getLogger(name="pasta")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler())
+    pasta = pty.Pasta(logger=logger)
+    stdin = shell.Typescript()
+    stdout = shell.Typescript()
+    stderr = shell.Typescript()
+    with pasta.spool(
+        cmd,
+        stdin=stdin,
+        stdout=stdout,
+        stderr=stderr,
+    ) as term:
         print("start", flush=True)
-        b = await spooler[0].tokenize()
-        print(b, flush=True)
+
+    print(stdin.buffer, flush=True)
+    print(stderr.buffer, flush=True)
+    print(stdout.buffer, flush=True)
 
     print("end", flush=True)
 
@@ -29,7 +43,7 @@ async def wrap(cmd: str) -> None:
 def root(ctx: click.Context, args: tuple[str]) -> None:
     """A."""
     cmd = shlex.join(args)
-    asyncio.run(wrap(cmd))
+    wrap(cmd)
     # try:
     #     with pasta.spool() as streams:
     #         stdin = streams[0].tokenize()

@@ -5,6 +5,7 @@ import asyncio
 import contextlib
 import errno
 import fcntl
+import logging
 import os
 import pty
 import queue
@@ -19,11 +20,11 @@ import termios
 import tty
 import types
 import typing as t
-from collections import deque
+from collections import abc, deque
 
 import pydantic
 
-from . import shell
+from . import multiplexor, shell
 
 
 class AsyncDeque:
@@ -59,26 +60,17 @@ class AsyncDeque:
         return len(self._deque)
 
 
-class Spooler(t.NamedTuple):
-    """."""
-
-    stdin: shell.Typescript
-    stdout: shell.Typescript
-    stderr: shell.Typescript
-
-
 class Pasta:
-    """Pasta is a pty.
+    """Pasta is a subproces pseudo terminal.
 
     Attributes
     ----------
-    linesep
-        Cooked mode terminal line separator.
-    crlf
-        Terminal carriage return and line feed.
+    logger
+        Optional logger for events.
     """
 
-    closed: bool = False
+    def __init__(self, logger: logging.Logger | None = None) -> None:
+        self.logger = logger
 
     @staticmethod
     def _get_echo(fd: int) -> bool:
@@ -113,7 +105,7 @@ class Pasta:
         return bool(attr[3] & termios.ECHO)
 
     @staticmethod
-    def _set_echo(fd: int, value: bool) -> None:
+    def _set_echo(fd: int, value: bool, logger: logging.Logger | None = None) -> None:
         """Set a terminal file descriptor to or form echo mode.
 
         Echo mode echoes input keystrokes back to the output.
@@ -124,6 +116,8 @@ class Pasta:
             Terminal file descriptor.
         value
             If to set echo mode on or off.
+        logger
+            Optional logger.
 
         Raises
         ------
@@ -151,6 +145,9 @@ class Pasta:
                 raise IOError(err.args[0], "%s: %s." % (err.args[1], errmsg))
             raise
 
+        if logger is not None:
+            logger.debug("Echo mode %d: %s", fd, "on" if value else "off")
+
     @staticmethod
     def _get_term_winsize(fd: int) -> tuple[t.Any, ...]:
         """Get the terminal window size.
@@ -173,7 +170,12 @@ class Pasta:
         return struct.unpack("HHHH", x)[0:2]
 
     @staticmethod
-    def _set_term_winsize(fd: int, rows: int, cols: int) -> None:
+    def _set_term_winsize(
+        fd: int,
+        rows: int,
+        cols: int,
+        logger: logging.Logger | None = None,
+    ) -> None:
         """Set the terminal window size.
 
         Parameters
@@ -184,13 +186,23 @@ class Pasta:
             Terminal cell row count.
         cols
             Terminal cell column count.
+        logger
+            Optional logger.
         """
+        if logger is not None:
+            logger.debug("Resizing %d: %dx%d", fd, cols, rows)
+
         TIOCSWINSZ = getattr(termios, "TIOCSWINSZ", -2146929561)
         s = struct.pack("HHHH", rows, cols, 0, 0)
         fcntl.ioctl(fd, TIOCSWINSZ, s)
 
     @classmethod
-    def _resize_term_factory(cls, parent_fd: int, child_fd: int) -> signal._HANDLER:
+    def _resize_term_factory(
+        cls,
+        parent_fd: int,
+        child_fd: int,
+        logger: logging.Logger | None = None,
+    ) -> signal._HANDLER:
         """Return a SIGNWINCH signal handler that resizes terminal windows.
 
         Parameters
@@ -199,6 +211,8 @@ class Pasta:
             A parent terminal file descriptor.
         child_fd
             A child terminal file descriptor.
+        logger
+            Optional logger.
 
         Returns
         -------
@@ -211,33 +225,87 @@ class Pasta:
                 return
 
             rows, cols = cls._get_term_winsize(parent_fd)
-            cls._set_term_winsize(child_fd, rows, cols)
+            cls._set_term_winsize(child_fd, rows, cols, logger=logger)
 
         return handleSignal
 
-    async def _copy(self, spooler: AsyncDeque) -> t.AsyncGenerator[bytes, None]:
-        # while :
-        try:
-            b = await spooler.pop()
-            yield b
-        except IndexError:
-            pass
-
-    @contextlib.asynccontextmanager
-    async def spool(
+    @contextlib.contextmanager
+    def spool(
         self,
         cmd: str,
         env: dict[str, str] = os.environ.copy(),
+        cwd: os.PathLike | None = None,
+        stdin: shell.Typescript | None = None,
+        stdout: shell.Typescript | None = None,
+        stderr: shell.Typescript | None = None,
+        timeout: float | None = 1,
         echo: bool = True,
-        histsize: int = 1000,
-        bufsize: int = 4096,
+        bufsize: int = 8192,
+        waterlevel: int = 4096,
         readsize: int = 1024,
-    ) -> t.AsyncGenerator[Spooler, None]:
-        """Capture captures Actions.
+    ) -> abc.Generator[multiplexor.Terminal, None, None]:
+        """Spool spools child process IO to buffers for the parent process to control.
 
-        Return
+        The "capture" implementation is focused on shell streams and therefore is
+        desgined to enable continuous interaction.
+
+        The parent process terminal is put into raw mode, creating a "pass-through" for
+        standard input keystrokes to be forwarded to a ptm. A ptm is the "master" file
+        descriptor in a pseudo terminal pair, it forwards data to its cable, pts. The
+        ptm is used by the parent process. The pts or "slave" is a terminal for use as
+        the standard input of the child process.
+
+        In most pty implementations, the ptm is used as the standard output and standard
+        error file descriptors of the child process. However, to differentiate the
+        standard output from standard error, distinct in-memory pipes are used. A pty
+        is bidirectional such that data may be written or read from either ptm or pts
+        end. The ptm is still read from in our case to capture echoed keystrokes. If the
+        pts is in echo mode, then any data written to the "pass-through" will be echoed
+        back to the ptm much like one would expect in a cooked mode terminal.
+
+        Typescripts are leveraged as callbacks to intercept the child process standard
+        input, standard output, and standard error streams respectively.
+
+        This method is a context manager such that the child process lifecycle may be
+        safely managed during streaming.
+
+        Parameters
+        ----------
+        cmd
+            Command to execute in the child process.
+        env
+            Environment variables for the child process. Defaults to inherit from the
+            parent process.
+        cwd
+            Working directory to execute the child process in.
+        stdin
+            Optional Typescript to intercept child process standard input.
+        stdout
+            Optional Typescript to intercept child process standard output.
+        stderr
+            Optional Typescript to intercept child process standard error.
+        timeout
+            Time to wait before forcibly closing the child process when streaming ends.
+        echo
+            Set echo mode for the pts (capture child process standard input?).
+        bufsize
+            Buffer size for the child process standard output and standard error file
+            descriptors.
+        waterlevel
+            Number of bytes to buffer in the parent process before needing to write to
+            streams and reset the buffer.
+        readsize
+            Number of bytes to read from file descriptors at a time.
+
+        Returns
+        -------
+        A Terminal manager for controlling the parent process despite giving terminal
+        control to the child process.
+
+        Raises
         ------
-        A generator of Actions.
+        ValueError
+            If the parent process standard input is not a TTY.
         """
         # split the command into argv
         args = shlex.split(cmd)
@@ -257,18 +325,24 @@ class Pasta:
 
         # create a pseudo-terminal (terminal, cable)
         ptm, pts = pty.openpty()
+        if self.logger is not None:
+            self.logger.debug("File descriptor ptm: %d", ptm)
+            self.logger.debug("File descriptor pts: %d", pts)
 
         # set standard input terminal to raw mode
         mode = termios.tcgetattr(stdin_fd)
         try:
             tty.setraw(stdin_fd)
+            if self.logger is not None:
+                self.logger.debug("Set parent terminal to raw mode")
 
             # set the pty slave to echo mode
-            # try:
-            #     self._set_echo(pts, echo)
-            # except (IOError, termios.error) as err:
-            #     if err.args[0] not in (errno.EINVAL, errno.ENOTTY):
-            #         raise
+            if echo != self._get_echo(pts):
+                try:
+                    self._set_echo(pts, echo, logger=self.logger)
+                except (IOError, termios.error) as err:
+                    if err.args[0] not in (errno.EINVAL, errno.ENOTTY):
+                        raise
 
             restore = True
         except termios.error:
@@ -278,9 +352,17 @@ class Pasta:
 
         try:
             # start a child process
+            if self.logger is not None:
+                self.logger.debug("Executing child process: %s", shlex.join(args))
+                if cwd is not None:
+                    self.logger.debug(
+                        "Using working directory for child process: %s", cwd
+                    )
+
             proc = subprocess.Popen(
                 args[:],
                 env=env,
+                cwd=cwd,
                 stdin=pts,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -292,29 +374,29 @@ class Pasta:
             self._set_term_winsize(pts, rows, cols)
 
             # register the terminal resize signal handler
-            signal.signal(signal.SIGWINCH, self._resize_term_factory(stdin_fd, pts))
-
-            # initialize ring buffer queues for write-only
-            stdin = AsyncDeque(maxlen=histsize)
-            stdout = AsyncDeque(maxlen=histsize)
-            stderr = AsyncDeque(maxlen=histsize)
+            signal.signal(
+                signal.SIGWINCH,
+                self._resize_term_factory(
+                    stdin_fd,
+                    pts,
+                    logger=self.logger,
+                ),
+            )
 
             # return proxied buffers for read-only
-            yield Spooler(
-                stdin=shell.Typescript(self._copy(stdin)),
-                stdout=shell.Typescript(self._copy(stdout)),
-                stderr=shell.Typescript(self._copy(stderr)),
-            )
+            yield multiplexor.Terminal(proc)
 
             buf_i = b""
             buf_o = b""
             buf_e = b""
+            # os.set_blocking(proc.stdout.fileno(), False)
+            os.set_blocking(ptm, False)
             while proc.poll() is None:
                 rfds: list[int] = []
                 wfds: list[int] = []
 
                 # add standard input to readers if buffer not above waterline
-                if len(buf_i) < bufsize:
+                if len(buf_i) < waterlevel:
                     rfds.append(stdin_fd)
 
                 # always add subprocess standard output if it is being captured
@@ -324,6 +406,8 @@ class Pasta:
                 # always add subprocess standard error if it is being captured
                 if proc.stderr is not None:
                     rfds.append(proc.stderr.fileno())
+
+                rfds.append(ptm)
 
                 # add ptm to writers if buffer has data
                 if len(buf_i) > 0:
@@ -341,33 +425,47 @@ class Pasta:
                     except OSError:
                         data = b""
 
+                    buf_i += data
+
+                if ptm in rfds:
+                    print("reading from ptm", flush=True)
+                    try:
+                        data = os.read(ptm, readsize)
+                    except OSError:
+                        data = b""
+
                     if data:
-                        buf_i += data
+                        buf_o += data
+                        if stdin is not None:
+                            stdin.write(data)
 
                 # copy buffer to ptm and a deque
                 if ptm in wfds:
                     print("writing to ptm", flush=True)
                     n = os.write(ptm, buf_i)
                     buf_i = buf_i[n:]
-                    await stdin.append(buf_i)
+                    if stdin is not None:
+                        stdin.write(buf_i)
 
                 # copy subproces standard output to a deque
-                if proc.stdout is not None and proc.stdout in rfds:
+                if proc.stdout is not None and proc.stdout.fileno() in rfds:
                     print("reading from stdout", flush=True)
                     try:
-                        data = os.read(self.proc.stdout.fileno(), readsize)  # type: ignore[reportOptionalMemberAccess]
+                        data = os.read(proc.stdout.fileno(), readsize)  # type: ignore[reportOptionalMemberAccess]
                         buf_o += data
-                        await stdout.append(data)
+                        if stdout is not None:
+                            stdout.write(data)
                     except OSError:
                         pass
 
                 # copy subprocess standard error to a deque
-                if proc.stderr is not None and proc.stderr in rfds:
+                if proc.stderr is not None and proc.stderr.fileno() in rfds:
                     print("reading from stderr", flush=True)
                     try:
-                        data = os.read(self.proc.stderr.fileno(), readsize)  # type: ignore[reportOptionalMemberAccess]
+                        data = os.read(proc.stderr.fileno(), readsize)  # type: ignore[reportOptionalMemberAccess]
                         buf_e += data
-                        await stderr.append(data)
+                        if stderr is not None:
+                            stderr.write(data)
                     except OSError:
                         pass
 
@@ -378,83 +476,21 @@ class Pasta:
                     break
 
         finally:
-            # restore the standard input terminal
-            if restore:
-                termios.tcsetattr(stdin_fd, termios.TCSAFLUSH, mode)
-
-            # replace with send EOF to ptm
+            # exit the child process
             if proc is not None:
-                proc.terminate()
+                try:
+                    exit_code = proc.wait(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    exit_code = proc.poll()
+
+                if self.logger is not None:
+                    self.logger.debug("Exited child process: %d", exit_code or 0)
 
             os.close(pts)
             os.close(ptm)
 
-    # def kill(self) -> None:
-    #     """Kill sends SIGKILL to the child process."""
-    #     self.proc.kill()
-    #
-    # def wait(self, timeout: float | None = None) -> int:
-    #     """Wait for the child process to terminate.
-    #
-    #     Parameters
-    #     ----------
-    #     timeout
-    #         Time to wait before forced termination.
-    #
-    #     Return
-    #     ------
-    #     Child process exit code.
-    #     """
-    #     return self.proc.wait(timeout)
-    #
-    # def close(
-    #     self,
-    #     timeout: float | None = None,
-    #     force: bool = False,
-    # ) -> t.Optional[int]:
-    #     """Close.
-    #
-    #     Return
-    #     ------
-    #     Process exit code.
-    #     """
-    #     if self.closed:
-    #         return self.proc.poll()
-    #
-    #     try:
-    #         if force:
-    #             self.kill()
-    #             exit_code = self.proc.poll()
-    #         else:
-    #             exit_code = self.wait(timeout)
-    #         self.closed = True
-    #     finally:
-    #         self.reset()
-    #         os.close(self.pts)
-    #         os.close(self.ptm)
-    #
-    #     return exit_code
-
-    # def __enter__(self) -> None:
-    #     return None
-    #
-    # @t.overload
-    # def __exit__(self, exc_type: None, exc_val: None, exc_tb: None) -> None:
-    #     ...
-    #
-    # @t.overload
-    # def __exit__(
-    #     self,
-    #     exc_type: type[BaseException],
-    #     exc_val: BaseException,
-    #     exc_tb: types.TracebackType,
-    # ) -> None:
-    #     ...
-    #
-    # def __exit__(
-    #     self,
-    #     exc_type: type[BaseException] | None,
-    #     exc_val: BaseException | None,
-    #     exc_tb: types.TracebackType | None,
-    # ) -> None:
-    #     pass
+            # restore the standard input terminal
+            if restore:
+                termios.tcsetattr(stdin_fd, termios.TCSAFLUSH, mode)
+                if self.logger is not None:
+                    self.logger.debug("Restored parent terminal")
