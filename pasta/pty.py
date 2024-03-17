@@ -370,7 +370,7 @@ class Terminal:
             blocking = os.get_blocking(ptm)
             if blocking:
                 if self.logger is not None:
-                    self.logger.debug("Unblocking: %d", ptm)
+                    self.logger.debug("Unblocking file descriptor: %d", ptm)
 
                 os.set_blocking(ptm, False)
 
@@ -403,7 +403,7 @@ class Terminal:
                 # read standard input and store data in buffer
                 if stdin_fd in rfds:
                     if self.logger is not None:
-                        self.logger.debug("Reading: %d", stdin_fd)
+                        self.logger.debug("Reading from file descriptor: %d", stdin_fd)
 
                     try:
                         data = os.read(stdin_fd, readsize)
@@ -414,7 +414,7 @@ class Terminal:
                 # read ptm, intercept, and copy to buffer (should be echoed pts only)
                 if ptm in rfds:
                     if self.logger is not None:
-                        self.logger.debug("Reading: %d", stdin_fd)
+                        self.logger.debug("Reading from file descriptor: %d", stdin_fd)
 
                     try:
                         data = os.read(ptm, readsize)
@@ -433,7 +433,7 @@ class Terminal:
                     and (stdout_fd := proc.stdout.fileno()) in rfds
                 ):
                     if self.logger is not None:
-                        self.logger.debug("Reading: %d", stdout_fd)
+                        self.logger.debug("Reading from file descriptor: %d", stdout_fd)
 
                     try:
                         data = os.read(stdout_fd, readsize)
@@ -452,7 +452,7 @@ class Terminal:
                     and (stderr_fd := proc.stderr.fileno()) in rfds
                 ):
                     if self.logger is not None:
-                        self.logger.debug("Reading: %d", stderr_fd)
+                        self.logger.debug("Reading from file descriptor: %d", stderr_fd)
 
                     try:
                         data = os.read(stderr_fd, readsize)
@@ -468,7 +468,7 @@ class Terminal:
                 # copy buffer to ptm ("pass-through" parent standard input to child pts)
                 if ptm in wfds:
                     if self.logger is not None:
-                        self.logger.debug("Writing: %d", ptm)
+                        self.logger.debug("Writing to file descriptor: %d", ptm)
 
                     n = os.write(ptm, buf_i)
                     buf_i = buf_i[n:]
@@ -486,7 +486,7 @@ class Terminal:
 
             if blocking:
                 if self.logger is not None:
-                    self.logger.debug("Blocking: %d", ptm)
+                    self.logger.debug("Blocking file descriptor: %d", ptm)
 
                 os.set_blocking(ptm, True)
 
