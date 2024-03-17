@@ -35,6 +35,10 @@ class Typescript:
         self.buffer.append(b)
         return len(b)
 
+    def wrap(self, b: bytes) -> bytes:
+        self.write(b)
+        return b
+
     # def tokenize(self) -> bytes:
     #     """A."""
     #     try:

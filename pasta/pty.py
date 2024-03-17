@@ -1,14 +1,12 @@
 """Pty code."""
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import errno
 import fcntl
 import logging
 import os
 import pty
-import queue
 import select
 import shlex
 import shutil
@@ -20,48 +18,13 @@ import termios
 import tty
 import types
 import typing as t
-from collections import abc, deque
-
-import pydantic
+from collections import abc
 
 from . import multiplexor, shell
 
 
-class AsyncDeque:
-    def __init__(self, maxlen: int | None = None):
-        self._deque = deque[bytes](maxlen=maxlen)
-        self._lock = asyncio.Lock()
-
-    async def append(self, item):
-        async with self._lock:
-            self._deque.append(item)
-
-    async def appendleft(self, item):
-        async with self._lock:
-            self._deque.appendleft(item)
-
-    async def pop(self):
-        async with self._lock:
-            return self._deque.pop()
-
-    async def popleft(self):
-        async with self._lock:
-            return self._deque.popleft()
-
-    async def peek(self):
-        async with self._lock:
-            return self._deque[-1]
-
-    async def peekleft(self):
-        async with self._lock:
-            return self._deque[0]
-
-    def __len__(self):
-        return len(self._deque)
-
-
-class Pasta:
-    """Pasta is a subproces pseudo terminal.
+class Terminal:
+    """Terminal is a subprocess pseudo terminal.
 
     Attributes
     ----------
@@ -243,7 +206,7 @@ class Pasta:
         bufsize: int = 8192,
         waterlevel: int = 4096,
         readsize: int = 1024,
-    ) -> abc.Generator[multiplexor.Terminal, None, None]:
+    ) -> abc.Generator[multiplexor.Pasta, None, None]:
         """Spool spools child process IO to buffers for the parent process to control.
 
         The "capture" implementation is focused on shell streams and therefore is
@@ -299,7 +262,7 @@ class Pasta:
 
         Returns
         -------
-        A Terminal manager for controlling the parent process despite giving terminal
+        A terminal manager for controlling the parent process despite giving terminal
         control to the child process.
 
         Raises
@@ -349,7 +312,7 @@ class Pasta:
             restore = False
 
         proc = None
-
+        blocking = False
         try:
             # start a child process
             if self.logger is not None:
@@ -384,20 +347,31 @@ class Pasta:
             )
 
             # return proxied buffers for read-only
-            yield multiplexor.Terminal(proc)
+            yield multiplexor.Pasta(proc)
 
             buf_i = b""
+            buf_p = b""
             buf_o = b""
             buf_e = b""
-            # os.set_blocking(proc.stdout.fileno(), False)
-            os.set_blocking(ptm, False)
+
+            blocking = os.get_blocking(ptm)
+            if blocking:
+                if self.logger is not None:
+                    self.logger.debug("Unblocking: %d", ptm)
+
+                os.set_blocking(ptm, False)
+
             while proc.poll() is None:
                 rfds: list[int] = []
                 wfds: list[int] = []
 
-                # add standard input to readers if buffer not above waterline
+                # add standard input to readers if buffer not above waterlevel
                 if len(buf_i) < waterlevel:
                     rfds.append(stdin_fd)
+
+                # add ptm to readers if buffer not above waterlevel
+                if len(buf_p) < waterlevel:
+                    rfds.append(ptm)
 
                 # always add subprocess standard output if it is being captured
                 if proc.stdout is not None:
@@ -407,73 +381,84 @@ class Pasta:
                 if proc.stderr is not None:
                     rfds.append(proc.stderr.fileno())
 
-                rfds.append(ptm)
-
                 # add ptm to writers if buffer has data
                 if len(buf_i) > 0:
                     wfds.append(ptm)
 
-                buf_o = b""
-                buf_i = b""
                 rfds, wfds, _ = select.select(rfds, wfds, [])
 
                 # read standard input and store data in buffer
-                if stdin in rfds:
-                    print("reading from stdin", flush=True)
+                if stdin_fd in rfds:
+                    if self.logger is not None:
+                        self.logger.debug("Reading: %d", stdin_fd)
+
                     try:
                         data = os.read(stdin_fd, readsize)
+                        buf_i += data
                     except OSError:
-                        data = b""
+                        pass
 
-                    buf_i += data
-
+                # read ptm, intercept, and copy to buffer (should be echoed pts only)
                 if ptm in rfds:
-                    print("reading from ptm", flush=True)
+                    if self.logger is not None:
+                        self.logger.debug("Reading: %d", stdin_fd)
+
                     try:
                         data = os.read(ptm, readsize)
                     except OSError:
                         data = b""
 
                     if data:
-                        buf_o += data
                         if stdin is not None:
-                            stdin.write(data)
+                            data = stdin.wrap(data)
 
-                # copy buffer to ptm and a deque
+                        buf_p += data
+
+                # read child process standard output, intercept, and copy to buffer
+                if (
+                    proc.stdout is not None
+                    and (stdout_fd := proc.stdout.fileno()) in rfds
+                ):
+                    if self.logger is not None:
+                        self.logger.debug("Reading: %d", stdout_fd)
+
+                    try:
+                        data = os.read(stdout_fd, readsize)
+                    except OSError:
+                        data = b""
+
+                    if data:
+                        if stdout is not None:
+                            data = stdout.wrap(data)
+
+                        buf_o += data
+
+                # read child process standard error, intercept, and copy to buffer
+                if (
+                    proc.stderr is not None
+                    and (stderr_fd := proc.stderr.fileno()) in rfds
+                ):
+                    if self.logger is not None:
+                        self.logger.debug("Reading: %d", stderr_fd)
+
+                    try:
+                        data = os.read(stderr_fd, readsize)
+                    except OSError:
+                        data = b""
+
+                    if data:
+                        if stderr is not None:
+                            data = stderr.wrap(data)
+
+                        buf_e += data
+
+                # copy buffer to ptm ("pass-through" parent standard input to child pts)
                 if ptm in wfds:
-                    print("writing to ptm", flush=True)
+                    if self.logger is not None:
+                        self.logger.debug("Writing: %d", ptm)
+
                     n = os.write(ptm, buf_i)
                     buf_i = buf_i[n:]
-                    if stdin is not None:
-                        stdin.write(buf_i)
-
-                # copy subproces standard output to a deque
-                if proc.stdout is not None and proc.stdout.fileno() in rfds:
-                    print("reading from stdout", flush=True)
-                    try:
-                        data = os.read(proc.stdout.fileno(), readsize)  # type: ignore[reportOptionalMemberAccess]
-                        buf_o += data
-                        if stdout is not None:
-                            stdout.write(data)
-                    except OSError:
-                        pass
-
-                # copy subprocess standard error to a deque
-                if proc.stderr is not None and proc.stderr.fileno() in rfds:
-                    print("reading from stderr", flush=True)
-                    try:
-                        data = os.read(proc.stderr.fileno(), readsize)  # type: ignore[reportOptionalMemberAccess]
-                        buf_e += data
-                        if stderr is not None:
-                            stderr.write(data)
-                    except OSError:
-                        pass
-
-                # detect EOF from what would be ptm
-                if len(buf_o) == 0 and len(buf_e) == 0:
-                    print("eof", flush=True)
-                    self.closed = True
-                    break
 
         finally:
             # exit the child process
@@ -485,6 +470,12 @@ class Pasta:
 
                 if self.logger is not None:
                     self.logger.debug("Exited child process: %d", exit_code or 0)
+
+            if blocking:
+                if self.logger is not None:
+                    self.logger.debug("Blocking: %d", ptm)
+
+                os.set_blocking(ptm, True)
 
             os.close(pts)
             os.close(ptm)

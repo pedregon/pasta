@@ -13,7 +13,7 @@ def wrap(cmd: str) -> None:
     logger = logging.getLogger(name="pasta")
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
-    pasta = pty.Pasta(logger=logger)
+    pasta = pty.Terminal(logger=logger)
     stdin = shell.Typescript()
     stdout = shell.Typescript()
     stderr = shell.Typescript()
@@ -22,7 +22,7 @@ def wrap(cmd: str) -> None:
         stdin=stdin,
         stdout=stdout,
         stderr=stderr,
-    ) as term:
+    ) as p:
         print("start", flush=True)
 
     print(stdin.buffer, flush=True)
