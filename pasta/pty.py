@@ -196,17 +196,14 @@ class Terminal:
     def spool(
         self,
         cmd: str,
-        env: dict[str, str] = os.environ.copy(),
+        env: dict[str, str] | None = os.environ.copy(),
         cwd: os.PathLike | None = None,
-        stdin: shell.Typescript | None = None,
-        stdout: shell.Typescript | None = None,
-        stderr: shell.Typescript | None = None,
         timeout: float | None = 1,
         echo: bool = True,
         bufsize: int = 8192,
         waterlevel: int = 4096,
         readsize: int = 1024,
-    ) -> abc.Generator[multiplexor.Pasta, None, None]:
+    ) -> abc.Generator[shell.Typescript, None, None]:
         """Spool spools child process IO to buffers for the parent process to control.
 
         The "capture" implementation is focused on shell streams and therefore is
@@ -241,12 +238,6 @@ class Terminal:
             parent process.
         cwd
             Working directory to execute the child process in.
-        stdin
-            Optional Typescript to intercept child process standard input.
-        stdout
-            Optional Typescript to intercept child process standard output.
-        stderr
-            Optional Typescript to intercept child process standard error.
         timeout
             Time to wait before forcibly closing the child process when streaming ends.
         echo
@@ -328,6 +319,7 @@ class Terminal:
                 args[:],
                 env=env,
                 cwd=cwd,
+                # stdin=subprocess.PIPE,
                 stdin=pts,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -335,6 +327,11 @@ class Terminal:
             )
 
             if self.logger is not None:
+                # if proc.stdin is not None:
+                #     self.logger.debug(
+                #         "File descriptor child input: %d", proc.stdin.fileno()
+                #     )
+
                 if proc.stdout is not None:
                     self.logger.debug(
                         "File descriptor child output: %d", proc.stdout.fileno()
@@ -360,7 +357,8 @@ class Terminal:
             )
 
             # return proxied buffers for read-only
-            yield multiplexor.Pasta(proc)
+            ts = shell.Typescript()
+            yield ts
 
             buf_i = b""
             buf_p = b""
@@ -422,9 +420,7 @@ class Terminal:
                         data = b""
 
                     if data:
-                        if stdin is not None:
-                            data = stdin.wrap(data)
-
+                        data = ts.wrap(shell.Event.STDIN, data)
                         buf_p += data
 
                 # read child process standard output, intercept, and copy to buffer
@@ -441,9 +437,7 @@ class Terminal:
                         data = b""
 
                     if data:
-                        if stdout is not None:
-                            data = stdout.wrap(data)
-
+                        data = ts.wrap(shell.Event.STDOUT, data)
                         buf_o += data
 
                 # read child process standard error, intercept, and copy to buffer
@@ -460,9 +454,7 @@ class Terminal:
                         data = b""
 
                     if data:
-                        if stderr is not None:
-                            data = stderr.wrap(data)
-
+                        data = ts.wrap(shell.Event.STDERR, data)
                         buf_e += data
 
                 # copy buffer to ptm ("pass-through" parent standard input to child pts)

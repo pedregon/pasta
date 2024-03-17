@@ -1,33 +1,49 @@
 """The `cmd` module is a command line application."""
-import asyncio
 import logging
+import os
 import shlex
-import time
+import sys
 
 import click
+import stransi
 
 from . import pty, shell
+
+
+def stdin(b: bytes) -> bytes:
+    os.write(sys.stdout.fileno(), b)
+    if b"\r\n" in b:
+        print([d for d in stransi.Ansi(b).escapes()], flush=True)
+
+    return b
+
+
+def stdout(b: bytes) -> bytes:
+    os.write(sys.stdout.fileno(), b)
+    return b
+
+
+def stderr(b: bytes) -> bytes:
+    os.write(sys.stderr.fileno(), b)
+    return b
 
 
 def wrap(cmd: str) -> None:
     logger = logging.getLogger(name="pasta")
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler())
+    # logger.addHandler(logging.StreamHandler())
     pasta = pty.Terminal(logger=logger)
-    stdin = shell.Typescript()
-    stdout = shell.Typescript()
-    stderr = shell.Typescript()
     with pasta.spool(
         cmd,
-        stdin=stdin,
-        stdout=stdout,
-        stderr=stderr,
-    ) as p:
-        print("start", flush=True)
+    ) as ts:
+        ts.addHandler(shell.Event.STDIN, stdin)
+        ts.addHandler(shell.Event.STDOUT, stdout)
+        ts.addHandler(shell.Event.STDERR, stderr)
+        pass
 
-    print(stdin.buffer, flush=True)
-    print(stderr.buffer, flush=True)
-    print(stdout.buffer, flush=True)
+    print(ts.stdin, flush=True)
+    print(ts.stdout, flush=True)
+    print(ts.stderr, flush=True)
 
     print("end", flush=True)
 
