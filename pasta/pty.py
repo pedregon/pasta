@@ -417,9 +417,14 @@ class Terminal:
 
                     try:
                         data = os.read(stdin_fd, readsize)
-                        buf_i += data
                     except OSError:
-                        pass
+                        data = b""
+
+                    if data:
+                        if dedicated_tty:
+                            data = ts.wrap(shell.Event.STDIN, data)
+
+                        buf_i += data
 
                 # read ptm, intercept, and copy to buffer (should be echoed pts only)
                 if ptm in rfds:
@@ -432,7 +437,9 @@ class Terminal:
                         data = b""
 
                     if data:
-                        data = ts.wrap(shell.Event.STDIN, data)
+                        if not dedicated_tty:
+                            data = ts.wrap(shell.Event.STDIN, data)
+
                         buf_p += data
 
                 # read child process standard output, intercept, and copy to buffer

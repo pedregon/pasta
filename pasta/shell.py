@@ -11,6 +11,9 @@ import time
 import types
 import typing as t
 from collections import abc, deque
+from datetime import datetime
+
+import stransi
 
 from . import actions
 
@@ -40,14 +43,18 @@ class Typescript:
         self,
         histsize: int = 1000,
     ) -> None:
-        self.stdin = deque[bytes](maxlen=histsize)
-        self.stdout = deque[bytes](maxlen=histsize)
-        self.stderr = deque[bytes](maxlen=histsize)
+        # self.stdin = deque[bytes](maxlen=histsize)
+        # self.ps1 = deque[bytes](maxlen=histsize)
+        # self.stdout = deque[bytes](maxlen=histsize)
+        # self.stderr = deque[bytes](maxlen=histsize)
         self.buf_i = b""
+        self.buf_ps1 = b""
         self.buf_o = b""
         self.buf_e = b""
+        self.buf_c = b""
+        self.start_time = datetime.utcnow()
         self.handlers = {}
-        self.io = True
+        self.actions = deque[actions.Action](maxlen=histsize)
 
     def addHandler(self, event: Event, handler: t.Callable[[bytes], bytes]) -> None:
         self.handlers[event] = self.handlers.get(event, []) + [handler]
@@ -56,7 +63,7 @@ class Typescript:
         pass
 
     def write(self, b: bytes) -> int:
-        self.stdout.append(b)
+        # self.buf_o += b
         return len(b)
 
     async def capture() -> t.AsyncGenerator[actions.Action, None]:
@@ -69,17 +76,44 @@ class Typescript:
 
         match event:
             case Event.STDIN:
-                self.buf_i += b
-            case Event.STDOUT:
-                self.buf_o += b
-            case Event.STDERR:
-                self.buf_e += b
+                if self.buf_i and self.buf_c:
+                    self.actions.append(
+                        actions.Action(
+                            prompt_ps1=self.buf_ps1,
+                            command_input=self.buf_i,
+                            command_output=self.buf_o,
+                            command_error=self.buf_e,
+                            typescript=self.buf_ps1 + self.buf_i + self.buf_c,
+                            time_started=self.start_time,
+                            time_elapsed=datetime.utcnow().timestamp()
+                            - self.start_time.timestamp(),
+                        )
+                    )
+                    self.buf_ps1 = b""
+                    self.buf_i = b""
+                    self.buf_o = b""
+                    self.buf_e = b""
+                    self.buf_c = b""
 
-        if (event is Event.STDOUT or event is Event.STDERR) and (
-            not self.buf_o and not self.buf_e
-        ):
-            self.stdout.append(self.buf_i)
-            self.buf_i = b""
+                if not self.buf_i and not self.buf_c:
+                    self.start_time = datetime.utcnow()
+
+                if b"\r" in b:
+                    self.buf_ps1 += b
+                else:
+                    self.buf_i += b
+            case Event.STDOUT:
+                if not self.buf_i:
+                    self.buf_ps1 += b
+                else:
+                    self.buf_o += b
+                    self.buf_c += b
+            case Event.STDERR:
+                if not self.buf_i:
+                    self.buf_ps1 += b
+                else:
+                    self.buf_e += b
+                    self.buf_c += b
 
         return b
 

@@ -36,17 +36,28 @@ def wrap(cmd: str, dedicated_tty: bool) -> None:
     with pasta.spool(
         cmd,
         dedicated_tty=dedicated_tty,
+        echo=not dedicated_tty,
     ) as ts:
         ts.addHandler(shell.Event.STDIN, stdin)
         ts.addHandler(shell.Event.STDOUT, stdout)
         ts.addHandler(shell.Event.STDERR, stderr)
         pass
 
-    print(ts.stdin, flush=True)
-    print(ts.stdout, flush=True)
-    print(ts.stderr, flush=True)
-
-    print("end", flush=True)
+    for action in ts.actions:
+        print("Action %s:" % action.id, flush=True)
+        print("Started at %s:" % action.time_started.isoformat(), flush=True)
+        print("Time taken %f:" % action.time_elapsed, flush=True)
+        print("Prompt:", flush=True)
+        print(action.prompt_ps1, flush=True)
+        print("Stdin:", flush=True)
+        print(action.command_input, flush=True)
+        print("Stdout:", flush=True)
+        print(action.command_output, flush=True)
+        print("Stderr:", flush=True)
+        print(action.command_error, flush=True)
+        print("Typescript:", flush=True)
+        os.write(sys.stdout.fileno(), action.typescript)
+        print(flush=True)
 
 
 @click.command(
