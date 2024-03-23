@@ -199,10 +199,14 @@ class Terminal:
         env: dict[str, str] | None = os.environ.copy(),
         cwd: os.PathLike | None = None,
         timeout: float | None = 1,
+        dedicated_tty: bool = False,
         echo: bool = True,
         bufsize: int = 8192,
         waterlevel: int = 4096,
         readsize: int = 1024,
+        pass_fds: tuple[int, ...] = (),
+        close_fds: bool = True,
+        preexec_fn: t.Callable[..., t.Any] | None = None,
     ) -> abc.Generator[shell.Typescript, None, None]:
         """Spool spools child process IO to buffers for the parent process to control.
 
@@ -240,6 +244,9 @@ class Terminal:
             Working directory to execute the child process in.
         timeout
             Time to wait before forcibly closing the child process when streaming ends.
+        dedicated_tty
+            Starts the child process as a new TTY session that does not yet have a
+            controlling terminal.
         echo
             Set echo mode for the pts (capture child process standard input?).
         bufsize
@@ -250,6 +257,13 @@ class Terminal:
             streams and reset the buffer.
         readsize
             Number of bytes to read from file descriptors at a time.
+        pass_fds
+            File descriptors to keep open between the parent process and the child
+            process.
+        close_fds
+            Control closing or inheriting of file descriptors.
+        preexec_fn
+            An object to be called in the child process just before execution.
 
         Returns
         -------
@@ -288,7 +302,7 @@ class Terminal:
         # set standard input terminal to raw mode
         mode = termios.tcgetattr(stdin_fd)
         try:
-            tty.setraw(stdin_fd)
+            tty.setcbreak(stdin_fd)
             if self.logger is not None:
                 self.logger.debug("Set parent terminal to raw mode")
 
@@ -319,19 +333,17 @@ class Terminal:
                 args[:],
                 env=env,
                 cwd=cwd,
-                # stdin=subprocess.PIPE,
+                start_new_session=dedicated_tty,  # https://www.man7.org/linux/man-pages/man2/setsid.2.html
                 stdin=pts,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 bufsize=bufsize,
+                pass_fds=pass_fds,
+                close_fds=close_fds,
+                preexec_fn=preexec_fn,
             )
 
             if self.logger is not None:
-                # if proc.stdin is not None:
-                #     self.logger.debug(
-                #         "File descriptor child input: %d", proc.stdin.fileno()
-                #     )
-
                 if proc.stdout is not None:
                     self.logger.debug(
                         "File descriptor child output: %d", proc.stdout.fileno()

@@ -12,8 +12,8 @@ from . import pty, shell
 
 def stdin(b: bytes) -> bytes:
     os.write(sys.stdout.fileno(), b)
-    if b"\r\n" in b:
-        print([d for d in stransi.Ansi(b).escapes()], flush=True)
+    # if b"\r\n" in b:
+    #     print([d for d in stransi.Ansi(b).escapes()], flush=True)
 
     return b
 
@@ -28,13 +28,14 @@ def stderr(b: bytes) -> bytes:
     return b
 
 
-def wrap(cmd: str) -> None:
+def wrap(cmd: str, dedicated_tty: bool) -> None:
     logger = logging.getLogger(name="pasta")
     logger.setLevel(logging.DEBUG)
     # logger.addHandler(logging.StreamHandler())
     pasta = pty.Terminal(logger=logger)
     with pasta.spool(
         cmd,
+        dedicated_tty=dedicated_tty,
     ) as ts:
         ts.addHandler(shell.Event.STDIN, stdin)
         ts.addHandler(shell.Event.STDOUT, stdout)
@@ -54,12 +55,13 @@ def wrap(cmd: str) -> None:
         ignore_unknown_options=True,
     ),
 )
+@click.option("--tty", is_flag=True)
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
-def root(ctx: click.Context, args: tuple[str]) -> None:
+def root(ctx: click.Context, tty: bool, args: tuple[str]) -> None:
     """A."""
     cmd = shlex.join(args)
-    wrap(cmd)
+    wrap(cmd, tty)
     # try:
     #     with pasta.spool() as streams:
     #         stdin = streams[0].tokenize()
