@@ -109,7 +109,7 @@ class Terminal:
             raise
 
         if logger is not None:
-            logger.debug("Echo mode %d: %s", fd, "on" if value else "off")
+            logger.debug("Echo mode {}: {}".format(fd, "on" if value else "off"))
 
     @staticmethod
     def _get_term_winsize(fd: int) -> tuple[t.Any, ...]:
@@ -153,7 +153,7 @@ class Terminal:
             Optional logger.
         """
         if logger is not None:
-            logger.debug("Resizing %d: %dx%d", fd, cols, rows)
+            logger.debug("Resizing {}: {}x{}".format(fd, cols, rows))
 
         TIOCSWINSZ = getattr(termios, "TIOCSWINSZ", -2146929561)
         s = struct.pack("HHHH", rows, cols, 0, 0)
@@ -200,6 +200,7 @@ class Terminal:
         cwd: os.PathLike | None = None,
         timeout: float | None = 1,
         dedicated_tty: bool = False,
+        ps1: bool = False,
         echo: bool = True,
         bufsize: int = 8192,
         waterlevel: int = 4096,
@@ -285,7 +286,7 @@ class Terminal:
         # get the standard input file descriptor
         stdin_fd = sys.stdin.fileno()
         if self.logger is not None:
-            self.logger.debug("File descriptor parent terminal: %d", stdin_fd)
+            self.logger.debug("File descriptor parent terminal: {}".format(stdin_fd))
 
         if not os.isatty(stdin_fd):
             raise ValueError("Standard input is not a tty.")
@@ -296,8 +297,8 @@ class Terminal:
         # create a pseudo-terminal (terminal, cable)
         ptm, pts = pty.openpty()
         if self.logger is not None:
-            self.logger.debug("File descriptor ptm: %d", ptm)
-            self.logger.debug("File descriptor pts: %d", pts)
+            self.logger.debug("File descriptor ptm: {}".format(ptm))
+            self.logger.debug("File descriptor pts: {}".format(pts))
 
         # set standard input terminal to raw mode
         mode = termios.tcgetattr(stdin_fd)
@@ -323,10 +324,12 @@ class Terminal:
         try:
             # start a child process
             if self.logger is not None:
-                self.logger.debug("Executing child process: %s", shlex.join(args))
+                self.logger.debug(
+                    "Executing child process: {}".format(shlex.join(args))
+                )
                 if cwd is not None:
                     self.logger.debug(
-                        "Using working directory for child process: %s", cwd
+                        "Using working directory for child process: {}".format(cwd)
                     )
 
             proc = subprocess.Popen(
@@ -346,12 +349,12 @@ class Terminal:
             if self.logger is not None:
                 if proc.stdout is not None:
                     self.logger.debug(
-                        "File descriptor child output: %d", proc.stdout.fileno()
+                        "File descriptor child output: {}".format(proc.stdout.fileno())
                     )
 
                 if proc.stderr is not None:
                     self.logger.debug(
-                        "File descriptor child error: %d", proc.stderr.fileno()
+                        "File descriptor child error: {}".format(proc.stderr.fileno())
                     )
 
             # set the initial terminal size
@@ -368,8 +371,14 @@ class Terminal:
                 ),
             )
 
+            # get EOF ANSI escape code
+            try:
+                eof = ord(termios.tcgetattr(stdin_fd)[6][termios.VEOF])
+            except (IOError, termios.error):
+                eof = termios.CEOF
+
             # return proxied buffers for read-only
-            ts = shell.Typescript()
+            ts = shell.Typescript(eof=bytes([eof]), ps1=ps1, logger=self.logger)
             yield ts
 
             buf_i = b""
@@ -380,7 +389,7 @@ class Terminal:
             blocking = os.get_blocking(ptm)
             if blocking:
                 if self.logger is not None:
-                    self.logger.debug("Unblocking file descriptor: %d", ptm)
+                    self.logger.debug("Unblocking file descriptor: {}".format(ptm))
 
                 os.set_blocking(ptm, False)
 
@@ -413,7 +422,9 @@ class Terminal:
                 # read standard input and store data in buffer
                 if stdin_fd in rfds:
                     if self.logger is not None:
-                        self.logger.debug("Reading from file descriptor: %d", stdin_fd)
+                        self.logger.debug(
+                            "Reading from file descriptor: {}".format(stdin_fd)
+                        )
 
                     try:
                         data = os.read(stdin_fd, readsize)
@@ -429,7 +440,9 @@ class Terminal:
                 # read ptm, intercept, and copy to buffer (should be echoed pts only)
                 if ptm in rfds:
                     if self.logger is not None:
-                        self.logger.debug("Reading from file descriptor: %d", stdin_fd)
+                        self.logger.debug(
+                            "Reading from file descriptor: {}".format(stdin_fd)
+                        )
 
                     try:
                         data = os.read(ptm, readsize)
@@ -448,7 +461,9 @@ class Terminal:
                     and (stdout_fd := proc.stdout.fileno()) in rfds
                 ):
                     if self.logger is not None:
-                        self.logger.debug("Reading from file descriptor: %d", stdout_fd)
+                        self.logger.debug(
+                            "Reading from file descriptor: {}".format(stdout_fd)
+                        )
 
                     try:
                         data = os.read(stdout_fd, readsize)
@@ -465,7 +480,9 @@ class Terminal:
                     and (stderr_fd := proc.stderr.fileno()) in rfds
                 ):
                     if self.logger is not None:
-                        self.logger.debug("Reading from file descriptor: %d", stderr_fd)
+                        self.logger.debug(
+                            "Reading from file descriptor: {}".format(stderr_fd)
+                        )
 
                     try:
                         data = os.read(stderr_fd, readsize)
@@ -479,13 +496,16 @@ class Terminal:
                 # copy buffer to ptm ("pass-through" parent standard input to child pts)
                 if ptm in wfds:
                     if self.logger is not None:
-                        self.logger.debug("Writing to file descriptor: %d", ptm)
+                        self.logger.debug("Writing to file descriptor: {}".format(ptm))
 
                     n = os.write(ptm, buf_i)
                     buf_i = buf_i[n:]
 
+            # flush typescript
+            ts.wrap(shell.Event.STDOUT, ts.eof)
+            ts.wrap(shell.Event.STDIN, ts.eof + ts.crlf)
         finally:
-            # exit the child process
+            # exit the child process if something unexpected happened
             if proc is not None:
                 try:
                     exit_code = proc.wait(timeout=timeout)
@@ -493,11 +513,11 @@ class Terminal:
                     exit_code = proc.poll()
 
                 if self.logger is not None:
-                    self.logger.debug("Exited child process: %d", exit_code or 0)
+                    self.logger.debug("Exited child process: {}".format(exit_code or 0))
 
             if blocking:
                 if self.logger is not None:
-                    self.logger.debug("Blocking file descriptor: %d", ptm)
+                    self.logger.debug("Blocking file descriptor: {}".format(ptm))
 
                 os.set_blocking(ptm, True)
 

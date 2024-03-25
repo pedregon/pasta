@@ -4,12 +4,13 @@ description = "Pasta is a shell processing utility for improving penetration tes
 dynamic = ["version"]
 license = "Apache-2.0"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 authors = [
   { name = "pedregon", email = "56311438+pedregon@users.noreply.github.com" },
 ]
 dependencies = [
   "click>=8.1.7,<9.0.0",
+  "pluggy>=1.4.0,<2.0.0",
   "pydantic>=2.0.0,<3.0.0",
 ]
 

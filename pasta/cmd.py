@@ -3,14 +3,20 @@ import logging
 import os
 import shlex
 import sys
+import time
 
 import click
 import stransi
 
 from . import pty, shell
+from .config import Config
+from .version import __version__
 
 
 def stdin(b: bytes) -> bytes:
+    if b == b"EOF":
+        return b
+
     os.write(sys.stdout.fileno(), b)
     # if b"\r\n" in b:
     #     print([d for d in stransi.Ansi(b).escapes()], flush=True)
@@ -19,6 +25,9 @@ def stdin(b: bytes) -> bytes:
 
 
 def stdout(b: bytes) -> bytes:
+    if b == b"EOF":
+        return b
+
     os.write(sys.stdout.fileno(), b)
     return b
 
@@ -28,10 +37,13 @@ def stderr(b: bytes) -> bytes:
     return b
 
 
-def wrap(cmd: str, dedicated_tty: bool) -> None:
-    logger = logging.getLogger(name="pasta")
-    logger.setLevel(logging.DEBUG)
-    # logger.addHandler(logging.StreamHandler())
+def wrap(cmd: str, dedicated_tty: bool, log_level: str) -> None:
+    logging.basicConfig(
+        level=log_level.upper(),
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        filename="/tmp/pasta.log",
+    )
+    logger = logging.getLogger(name=cmd)
     pasta = pty.Terminal(logger=logger)
     with pasta.spool(
         cmd,
@@ -44,20 +56,25 @@ def wrap(cmd: str, dedicated_tty: bool) -> None:
         pass
 
     for action in ts.actions:
-        print("Action %s:" % action.id, flush=True)
-        print("Started at %s:" % action.time_started.isoformat(), flush=True)
-        print("Time taken %f:" % action.time_elapsed, flush=True)
-        print("Prompt:", flush=True)
-        print(action.prompt_ps1, flush=True)
-        print("Stdin:", flush=True)
-        print(action.command_input, flush=True)
-        print("Stdout:", flush=True)
-        print(action.command_output, flush=True)
-        print("Stderr:", flush=True)
-        print(action.command_error, flush=True)
-        print("Typescript:", flush=True)
-        os.write(sys.stdout.fileno(), action.typescript)
-        print(flush=True)
+        logger.info(
+            "Action {} started at {} and executed for {} seconds -->\nPrompt:\n{}\nStdin:\n{}\nStdout:\n{}\nStderr:\n{}\n".format(
+                action.id,
+                action.time_started.isoformat(),
+                action.time_elapsed,
+                action.prompt_ps1,
+                action.command_input,
+                action.command_output,
+                action.command_error,
+            )
+        )
+
+
+def print_version(ctx, param: click.Parameter, value: bool) -> None:
+    if not value or ctx.resilient_parsing:
+        return
+
+    click.echo(__version__)
+    ctx.exit()
 
 
 @click.command(
@@ -66,13 +83,24 @@ def wrap(cmd: str, dedicated_tty: bool) -> None:
         ignore_unknown_options=True,
     ),
 )
+# @click.option("--config", "-c", type=str | None)
+@click.option(
+    "--version", is_flag=True, callback=print_version, expose_value=False, is_eager=True
+)
 @click.option("--tty", is_flag=True)
+@click.option(
+    "--log-level",
+    type=click.Choice(["info", "debug"], case_sensitive=False),
+    default="info",
+)
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
-def root(ctx: click.Context, tty: bool, args: tuple[str]) -> None:
+def root(
+    ctx: click.Context, config: str | None, tty: bool, log_level: str, args: tuple[str]
+) -> None:
     """A."""
     cmd = shlex.join(args)
-    wrap(cmd, tty)
+    wrap(cmd, tty, log_level)
     # try:
     #     with pasta.spool() as streams:
     #         stdin = streams[0].tokenize()
