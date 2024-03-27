@@ -20,11 +20,12 @@ import types
 import typing as t
 from collections import abc
 
-from . import multiplexor, shell
+from . import errors, shell
+from .config import Config
 
 
-class Terminal:
-    """Terminal is a subprocess pseudo terminal.
+class PseudoTerminal:
+    """PseudoTerminal is a subprocess-based pty.
 
     Attributes
     ----------
@@ -32,7 +33,8 @@ class Terminal:
         Optional logger for events.
     """
 
-    def __init__(self, logger: logging.Logger | None = None) -> None:
+    def __init__(self, config: Config, logger: logging.Logger | None = None) -> None:
+        self.config = config
         self.logger = logger
 
     @staticmethod
@@ -196,12 +198,10 @@ class Terminal:
     def spool(
         self,
         cmd: str,
-        env: dict[str, str] | None = os.environ.copy(),
-        cwd: os.PathLike | None = None,
-        timeout: float | None = 1,
-        dedicated_tty: bool = False,
-        ps1: bool = False,
+        env: dict[str, str] | None = None,
+        cwd: os.PathLike | str | None = None,
         echo: bool = True,
+        timeout: float | None = None,
         bufsize: int = 8192,
         waterlevel: int = 4096,
         readsize: int = 1024,
@@ -211,10 +211,10 @@ class Terminal:
     ) -> abc.Generator[shell.Typescript, None, None]:
         """Spool spools child process IO to buffers for the parent process to control.
 
-        The "capture" implementation is focused on shell streams and therefore is
-        desgined to enable continuous interaction.
+        The "capture" implementation is focused on shell data streams and
+        therefore was desgined with continuous interaction in mind.
 
-        The parent process terminal is put into raw mode, creating a "pass-through" for
+        The parent process' terminal is put into raw mode, creating a "pass-through" for
         standard input keystrokes to be forwarded to a ptm. A ptm is the "master" file
         descriptor in a pseudo terminal pair, it forwards data to its cable, pts. The
         ptm is used by the parent process. The pts or "slave" is a terminal for use as
@@ -224,32 +224,34 @@ class Terminal:
         error file descriptors of the child process. However, to differentiate the
         standard output from standard error, distinct in-memory pipes are used. A pty
         is bidirectional such that data may be written or read from either ptm or pts
-        end. The ptm is still read from in our case to capture echoed keystrokes. If the
-        pts is in echo mode, then any data written to the "pass-through" will be echoed
+        end. If the child process is a controlling terminal, then echo mode should be
+        off. But, if the child process is NOT a controlling terminal, then keystrokes
+        forwarded to the pts will not be displayed. The solution is to set the pts
+        into echo mode, then any data written to the "pass-through" will be echoed
         back to the ptm much like one would expect in a cooked mode terminal.
 
-        Typescripts are leveraged as callbacks to intercept the child process standard
-        input, standard output, and standard error streams respectively.
+        A Typescript is leveraged to intercept the child process standard
+        input, standard output, and standard error streams respectively. A Typescript
+        supports callbacks that empower the parent process to enrich shell data or even
+        write a stream to a respective parent process standard file descriptor.
 
-        This method is a context manager such that the child process lifecycle may be
-        safely managed during streaming.
+        This method is a context manager to safely maintain the child process lifecycle
+        during IO streaming.
 
         Parameters
         ----------
         cmd
             Command to execute in the child process.
         env
-            Environment variables for the child process. Defaults to inherit from the
-            parent process.
+            Environment variables for the child process. By default inherits from
+            parent process (forked).
         cwd
             Working directory to execute the child process in.
+        echo
+            Set the pts to echo mode (necessary if the child process is NOT a
+            controlling terminal).
         timeout
             Time to wait before forcibly closing the child process when streaming ends.
-        dedicated_tty
-            Starts the child process as a new TTY session that does not yet have a
-            controlling terminal.
-        echo
-            Set echo mode for the pts (capture child process standard input?).
         bufsize
             Buffer size for the child process standard output and standard error file
             descriptors.
@@ -257,7 +259,7 @@ class Terminal:
             Number of bytes to buffer in the parent process before needing to write to
             streams and reset the buffer.
         readsize
-            Number of bytes to read from file descriptors at a time.
+            Number of bytes to read from a file descriptor at a time.
         pass_fds
             File descriptors to keep open between the parent process and the child
             process.
@@ -268,12 +270,13 @@ class Terminal:
 
         Returns
         -------
-        A terminal manager for controlling the parent process despite giving terminal
-        control to the child process.
+        A Typescript for the parent process to intercept and handle child process IO.
 
         Raises
         ------
-        ValueError
+        PastaError
+            If the command is not found or executable.
+            If the buffer size is less than 1.
             If the parent process standard input is not a TTY.
         """
         # split the command into argv
@@ -282,61 +285,59 @@ class Terminal:
         # ensure executable path
         if exe := shutil.which(args[0]):
             args[0] = exe
+        else:
+            raise errors.PastaError("Command not found or executable: %s", exe)
+
+        # validate buffer size
+        if bufsize < 1:
+            raise errors.PastaError("Buffer size cannot be less than 1")
 
         # get the standard input file descriptor
         stdin_fd = sys.stdin.fileno()
         if self.logger is not None:
-            self.logger.debug("File descriptor parent terminal: {}".format(stdin_fd))
+            self.logger.debug("Parent process input file descriptor: %d", stdin_fd)
 
         if not os.isatty(stdin_fd):
-            raise ValueError("Standard input is not a tty.")
+            raise errors.PastaError("Standard input is not a tty.")
 
         # create an audit log
-        sys.audit("pasta.pty")
+        sys.audit("pasta.pty", shlex.join(args))
 
         # create a pseudo-terminal (terminal, cable)
         ptm, pts = pty.openpty()
         if self.logger is not None:
-            self.logger.debug("File descriptor ptm: {}".format(ptm))
-            self.logger.debug("File descriptor pts: {}".format(pts))
+            self.logger.debug("File descriptor ptm: %d", ptm)
+            self.logger.debug("File descriptor pts: %d", pts)
 
         # set standard input terminal to raw mode
         mode = termios.tcgetattr(stdin_fd)
-        try:
-            tty.setcbreak(stdin_fd)
-            if self.logger is not None:
-                self.logger.debug("Set parent terminal to raw mode")
+        # set pts to echo mode
+        if echo != self._get_echo(pts):
+            try:
+                self._set_echo(pts, echo, logger=self.logger)
+                restore = True
+            except (IOError, termios.error) as err:
+                restore = False
+                if err.args[0] not in (errno.EINVAL, errno.ENOTTY):
+                    raise
 
-            # set the pty slave to echo mode
-            if echo != self._get_echo(pts):
-                try:
-                    self._set_echo(pts, echo, logger=self.logger)
-                except (IOError, termios.error) as err:
-                    if err.args[0] not in (errno.EINVAL, errno.ENOTTY):
-                        raise
-
-            restore = True
-        except termios.error:
-            restore = False
+        if self.logger is not None:
+            self.logger.debug("File descriptor echo mode: %s", "on" if echo else "off")
 
         proc = None
         blocking = False
         try:
             # start a child process
             if self.logger is not None:
-                self.logger.debug(
-                    "Executing child process: {}".format(shlex.join(args))
-                )
+                self.logger.debug("Executing child process: %s", cmd)
                 if cwd is not None:
-                    self.logger.debug(
-                        "Using working directory for child process: {}".format(cwd)
-                    )
+                    self.logger.debug("Child process workding directory: %s", cwd)
 
             proc = subprocess.Popen(
                 args[:],
                 env=env,
                 cwd=cwd,
-                start_new_session=dedicated_tty,  # https://www.man7.org/linux/man-pages/man2/setsid.2.html
+                start_new_session=True,  # https://www.man7.org/linux/man-pages/man2/setsid.2.html
                 stdin=pts,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -349,12 +350,12 @@ class Terminal:
             if self.logger is not None:
                 if proc.stdout is not None:
                     self.logger.debug(
-                        "File descriptor child output: {}".format(proc.stdout.fileno())
+                        "Child process output file descriptor: %d", proc.stdout.fileno()
                     )
 
                 if proc.stderr is not None:
                     self.logger.debug(
-                        "File descriptor child error: {}".format(proc.stderr.fileno())
+                        "Child process error file descriptor: %d", proc.stderr.fileno()
                     )
 
             # set the initial terminal size
@@ -371,15 +372,24 @@ class Terminal:
                 ),
             )
 
-            # get EOF ANSI escape code
+            # resolve EOF ANSI escape code
             try:
                 eof = ord(termios.tcgetattr(stdin_fd)[6][termios.VEOF])
             except (IOError, termios.error):
                 eof = termios.CEOF
 
-            # return proxied buffers for read-only
-            ts = shell.Typescript(eof=bytes([eof]), ps1=ps1, logger=self.logger)
+            # return proxied buffers for interception
+            ts = shell.Typescript(self.config, eof=bytes([eof]), logger=self.logger)
             yield ts
+
+            # set standard input terminal to raw mode
+            try:
+                tty.setraw(stdin_fd)
+                if self.logger is not None:
+                    self.logger.debug("File descriptor in raw mode: %d", stdin_fd)
+                restore = True
+            except termios.error:
+                restore = False
 
             buf_i = b""
             buf_p = b""
@@ -397,82 +407,69 @@ class Terminal:
                 rfds: list[int] = []
                 wfds: list[int] = []
 
-                # add standard input to readers if buffer not above waterlevel
+                # add parent process stdin to readers if buf_i not above waterlevel
                 if len(buf_i) < waterlevel:
                     rfds.append(stdin_fd)
 
-                # add ptm to readers if buffer not above waterlevel
+                # add ptm to readers if buf_p not above waterlevel
                 if len(buf_p) < waterlevel:
                     rfds.append(ptm)
 
-                # always add subprocess standard output if it is being captured
+                # always add child process stdout if being captured
                 if proc.stdout is not None:
                     rfds.append(proc.stdout.fileno())
 
-                # always add subprocess standard error if it is being captured
+                # always add child process stderr if being captured
                 if proc.stderr is not None:
                     rfds.append(proc.stderr.fileno())
 
-                # add ptm to writers if buffer has data
+                # add ptm to writers if buf_i has data
                 if len(buf_i) > 0:
                     wfds.append(ptm)
 
                 rfds, wfds, _ = select.select(rfds, wfds, [])
 
-                # read standard input and store data in buffer
+                # read parent process stdin and copy data to buf_i
                 if stdin_fd in rfds:
                     if self.logger is not None:
-                        self.logger.debug(
-                            "Reading from file descriptor: {}".format(stdin_fd)
-                        )
+                        self.logger.debug("Reading from file descriptor: %d", stdin_fd)
 
-                    try:
-                        data = os.read(stdin_fd, readsize)
-                    except OSError:
-                        data = b""
-
+                    data = os.read(stdin_fd, readsize)
                     if data:
-                        if dedicated_tty:
+                        if not echo:
                             data = ts.wrap(shell.Event.STDIN, data)
 
                         buf_i += data
 
-                # read ptm, intercept, and copy to buffer (should be echoed pts only)
+                # read ptm and copy data to buf_p (should be echoed pts only)
                 if ptm in rfds:
                     if self.logger is not None:
-                        self.logger.debug(
-                            "Reading from file descriptor: {}".format(stdin_fd)
-                        )
+                        self.logger.debug("Reading from file descriptor: %d", ptm)
 
-                    try:
-                        data = os.read(ptm, readsize)
-                    except OSError:
-                        data = b""
-
+                    data = os.read(ptm, readsize)
                     if data:
-                        if not dedicated_tty:
+                        if echo:
                             data = ts.wrap(shell.Event.STDIN, data)
 
                         buf_p += data
 
-                # read child process standard output, intercept, and copy to buffer
+                # read child process stdout, intercept, and copy to buf_o
                 if (
                     proc.stdout is not None
                     and (stdout_fd := proc.stdout.fileno()) in rfds
                 ):
                     if self.logger is not None:
-                        self.logger.debug(
-                            "Reading from file descriptor: {}".format(stdout_fd)
-                        )
+                        self.logger.debug("Reading from file descriptor: %d", stdout_fd)
 
                     try:
                         data = os.read(stdout_fd, readsize)
-                    except OSError:
-                        data = b""
+                        if data:
+                            data = ts.wrap(shell.Event.STDOUT, data)
+                            buf_o += data
 
-                    if data:
-                        data = ts.wrap(shell.Event.STDOUT, data)
-                        buf_o += data
+                    except OSError:
+                        # assume child process exited
+                        break
 
                 # read child process standard error, intercept, and copy to buffer
                 if (
@@ -480,52 +477,55 @@ class Terminal:
                     and (stderr_fd := proc.stderr.fileno()) in rfds
                 ):
                     if self.logger is not None:
-                        self.logger.debug(
-                            "Reading from file descriptor: {}".format(stderr_fd)
-                        )
+                        self.logger.debug("Reading from file descriptor: %d", stderr_fd)
 
                     try:
                         data = os.read(stderr_fd, readsize)
+                        if data:
+                            data = ts.wrap(shell.Event.STDERR, data)
+                            buf_e += data
+
                     except OSError:
-                        data = b""
+                        # assume child process exited
+                        break
 
-                    if data:
-                        data = ts.wrap(shell.Event.STDERR, data)
-                        buf_e += data
-
-                # copy buffer to ptm ("pass-through" parent standard input to child pts)
+                # copy buf_i to ptm ("pass-through" parent process stdin to pts)
                 if ptm in wfds:
                     if self.logger is not None:
-                        self.logger.debug("Writing to file descriptor: {}".format(ptm))
+                        self.logger.debug("Writing to file descriptor: %d", ptm)
 
                     n = os.write(ptm, buf_i)
                     buf_i = buf_i[n:]
 
             # flush typescript
-            ts.wrap(shell.Event.STDOUT, ts.eof)
+            ts.wrap(shell.Event.STDOUT, ts.eof, flush=True)
             ts.wrap(shell.Event.STDIN, ts.eof + ts.crlf)
+        except BaseException:
+            # if an exception occurs e.g. KeyboardInterrupt, close the child process
+            if proc is not None:
+                proc.kill()
+
         finally:
             # exit the child process if something unexpected happened
             if proc is not None:
                 try:
-                    exit_code = proc.wait(timeout=timeout)
+                    retcode = proc.wait(timeout=timeout)
                 except subprocess.TimeoutExpired:
-                    exit_code = proc.poll()
+                    retcode = proc.poll()
 
                 if self.logger is not None:
-                    self.logger.debug("Exited child process: {}".format(exit_code or 0))
+                    self.logger.debug(
+                        "Child process exited: %d",
+                        retcode if retcode is not None else 0,
+                    )
 
-            if blocking:
-                if self.logger is not None:
-                    self.logger.debug("Blocking file descriptor: {}".format(ptm))
-
-                os.set_blocking(ptm, True)
-
-            os.close(pts)
-            os.close(ptm)
-
-            # restore the standard input terminal
+            # restore the parent process stdin
             if restore:
                 termios.tcsetattr(stdin_fd, termios.TCSAFLUSH, mode)
                 if self.logger is not None:
-                    self.logger.debug("Restored parent terminal")
+                    self.logger.debug(
+                        "Parent process input file descriptor restored: %d", stdin_fd
+                    )
+
+            os.close(pts)
+            os.close(ptm)

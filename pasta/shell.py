@@ -19,6 +19,7 @@ from datetime import datetime
 import stransi
 
 from . import actions
+from .config import Config
 
 
 class Event(enum.IntEnum):
@@ -44,18 +45,15 @@ class Typescript:
 
     def __init__(
         self,
+        config: Config,
         eof: bytes = bytes([termios.CEOF]),
         histsize: int = 1000,
         ps1: bool = False,
         logger: logging.Logger | None = None,
     ) -> None:
-        # self.stdin = deque[bytes](maxlen=histsize)
-        # self.ps1 = deque[bytes](maxlen=histsize)
-        # self.stdout = deque[bytes](maxlen=histsize)
-        # self.stderr = deque[bytes](maxlen=histsize)
+        self.config = config
         self.eof = eof
         self.logger = logger
-        self.ps1 = ps1
         self.buf_i = b""
         self.buf_ps1 = b""
         self.buf_o = b""
@@ -78,7 +76,7 @@ class Typescript:
     async def capture() -> t.AsyncGenerator[actions.Action, None]:
         yield actions.Action()
 
-    def wrap(self, event: Event, b: bytes) -> bytes:
+    def wrap(self, event: Event, b: bytes, flush: bool = False) -> bytes:
         if handlers := self.handlers.get(event):
             for handler in handlers:
                 b = handler(b)
@@ -124,10 +122,8 @@ class Typescript:
 
                     self.buf_i += b
             case Event.STDOUT:
+                # command input is empty and command output is not EOF
                 if not self.buf_i and b != self.eof:
-                    if self.logger is not None:
-                        self.logger.info("Capturing PS1")
-
                     self.buf_ps1 += b
                 else:
                     if self.logger is not None:
